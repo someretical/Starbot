@@ -1,0 +1,32 @@
+'use strict';
+
+const StarbotCommand = require('../../structures/StarbotCommand.js');
+
+class CommandName extends StarbotCommand {
+	constructor(client) {
+		super(client, {
+			name: '',
+			description: '',
+			group: '',
+			usage: '',
+			args: [{
+				name: '',
+				optional: true,
+				description: '',
+				example: '',
+			}],
+			aliases: [],
+			userPermissions: [],
+			clientPermissions: [],
+			guildOnly: true,
+			ownerOnly: false,
+			throttle: 5000,
+		});
+	}
+
+	async run(message) {
+
+	}
+}
+
+module.exports = CommandName;
