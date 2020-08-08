@@ -38,6 +38,10 @@ class BlockChannel extends StarbotCommand {
 			return channel.embed('Sorry but the bot couldn\'t find that channel.');
 		}
 
+		if (!['text', 'news'].includes(guild.channels.cache.get(id).type)) {
+			return channel.embed('Please provide a text channel!');
+		}
+
 		const { settings } = guild;
 		const ignoredChannels = JSON.parse(settings.ignoredChannels);
 
