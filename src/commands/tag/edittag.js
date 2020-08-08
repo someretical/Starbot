@@ -56,7 +56,7 @@ class EditTag extends StarbotCommand {
 		}
 
 		async function askName() {
-			const question = await channel.embed(client.embed(`
+			const question = await channel.embed(client.embed(stripIndents`
 				Please enter the name of the tag you wish to edit.
 				Type \`cancel\` at any time to stop the process.
 			`, true)
