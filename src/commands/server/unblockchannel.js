@@ -39,14 +39,10 @@ class UnblockChannel extends StarbotCommand {
 			return channel.embed('Sorry but the bot couldn\'t find that channel.');
 		}
 
-		const { settings } = guild;
-		const ignoredChannels = JSON.parse(settings.ignoredChannels);
-
-		if (ignoredChannels.includes(id)) {
-			ignoredChannels.splice(ignoredChannels.indexOf(id), 1);
-
-			const upsertObj = settings.get();
-			upsertObj.ignoredChannels = JSON.stringify(ignoredChannels);
+		const upsertObj = guild.settings.toJSON();
+		if (upsertObj.ignoredChannels.includes(id)) {
+			upsertObj.ignoredChannels.splice(upsertObj.ignoredChannels.indexOf(id), 1);
+			upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
 
 			const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
 
