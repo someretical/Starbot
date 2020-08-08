@@ -42,17 +42,14 @@ class BlockChannel extends StarbotCommand {
 			return channel.embed('Please provide a text channel!');
 		}
 
-		const { settings } = guild;
-		const ignoredChannels = JSON.parse(settings.ignoredChannels);
+		const upsertObj = guild.settings.toJSON();
 
-		if (ignoredChannels.includes(id)) {
+		if (upsertObj.ignoredChannels.includes(id)) {
 			return channel.embed('This channel is already ignored by the bot!');
 		}
 
-		ignoredChannels.push(id);
-
-		const upsertObj = settings.get();
-		upsertObj.ignoredChannels = JSON.stringify(ignoredChannels);
+		upsertObj.ignoredChannels.push(id);
+		upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
 
 		const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
 
