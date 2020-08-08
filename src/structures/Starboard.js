@@ -254,7 +254,7 @@ class Starboard {
 
 			for (const [id, user] of fetchedUsers) users.set(id, user);
 
-			return fetch({ before: fetchedUsers.lastKey() });
+			return fetch({ after: fetchedUsers.lastKey() });
 		};
 
 		return fetch();
