@@ -34,33 +34,33 @@ class BlockUser extends StarbotCommand {
 		return askUser();
 
 		function cancel() {
-			channel.embed(client.embed(oneLine`
-				The ignore process has been successfully cancelled.
-				All changes have been discarded.
-				`, true)
-				.setTitle(`Block a user on ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Block a user on ${guild.name}`)
+				.setDescription('The ignore process has been successfully cancelled. All changes have been discarded.');
 
+			channel.send(embed);
 			return channel.awaiting.delete(author.id);
 		}
 
 		function timeUp() {
-			channel.embed(client.embed(oneLine`
-				Sorry but the message collector timed out.
-				Please run the command again.
-				`, true)
-				.setTitle(`Block a user on ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Block a user on ${guild.name}`)
+				.setDescription('Sorry but the message collector timed out. Please run the command again.');
 
+			channel.send(embed);
 			return channel.awaiting.delete(author.id);
 		}
 
 		async function askUser() {
-			const question = await channel.embed(client.embed(`
-				Please mention the user that you wish to block.
-				Alternatively, you can enter their id.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Block a user on ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Block a user on ${guild.name}`)
+				.setDescription(oneLine`
+					Please mention the user that you wish to block. 
+					Alternatively, you can enter their id.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -80,11 +80,7 @@ class BlockUser extends StarbotCommand {
 				}
 
 				if (author.id === id) {
-					return channel.embed(`<@!${id}>, why are you trying to block yourself?`);
-				}
-
-				if (client.users.cache.get(id).bot) {
-					return channel.embed('Please pick a **user**!');
+					return channel.embed(`<@!${id}>, you cannot block yourself!`);
 				}
 
 				return collector.stop({ user_id: id });
@@ -101,13 +97,15 @@ class BlockUser extends StarbotCommand {
 		}
 
 		async function askReason(obj) {
-			const question = await channel.embed(client.embed(`
-				Please enter the reason you wish to block <@!${obj.user_id}>.
-				Type \`skip\` to skip this step.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Block a user on ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Block a user on ${guild.name}`)
+				.setDescription(oneLine`
+					Please enter the reason you wish to block <@!${obj.user_id}>.
+					Type \`skip\` to skip this step.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -147,13 +145,15 @@ class BlockUser extends StarbotCommand {
 		}
 
 		async function askGlobal(obj) {
-			const question = await channel.embed(client.embed(`
-				Would you like to block <@!${obj.user_id}> globally?
-				Type \`(y)es\` or \`(n)o\` to confirm.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Block a user on ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Block a user on ${guild.name}`)
+				.setDescription(oneLine`
+					Would you like to block <@!${obj.user_id}> globally?
+					Type \`(y)es\` or \`(n)o\` to confirm.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {

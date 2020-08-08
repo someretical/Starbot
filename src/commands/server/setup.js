@@ -34,34 +34,36 @@ class Setup extends StarbotCommand {
 		return askPrefix();
 
 		function cancel() {
-			channel.embed(client.embed(oneLine`
-				The setup process has been successfully cancelled.
-				All changes have been discarded.
-				`, true)
-				.setTitle(`Setup wizard for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Setup wizard for ${guild.name}`)
+				.setDescription('The setup process has been successfully cancelled. All changes have been discarded.');
+
+			channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}
 
 		function timeUp() {
-			channel.embed(client.embed(oneLine`
-				Sorry but the message collector timed out.
-				Please run the command again.
-				`, true)
-				.setTitle(`Setup wizard for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Setup wizard for ${guild.name}`)
+				.setDescription('Sorry but the message collector timed out. Please run the command again.');
+
+			channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}
 
 		async function askPrefix() {
-			const question = await channel.embed(client.embed(stripIndents`
-				Please enter the custom prefix for this server. It must be between 1 and 10 characters long.
-				The current prefix is \`${upsertObj.prefix}\`.
-				Type \`skip\` to skip this step.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Setup wizard for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Setup wizard for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please enter the custom prefix for this server. It must be between 1 and 10 characters long.
+					The current prefix is \`${upsertObj.prefix}\`.
+					Type \`skip\` to skip this step.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -94,14 +96,16 @@ class Setup extends StarbotCommand {
 		}
 
 		async function askTag() {
-			const question = await channel.embed(client.embed(stripIndents`
-				Would you like to ${upsertObj.tagsEnabled ? 'disable' : 'enable'} tags? Please type yes or no.
-				They are currently ${upsertObj.tagsEnabled ? 'enabled' : 'disabled'}.				
-				Type \`skip\` to skip this step.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Setup wizard for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Setup wizard for ${guild.name}`)
+				.setDescription(stripIndents`
+					Would you like to ${upsertObj.tagsEnabled ? 'disable' : 'enable'} tags? Please type yes or no.
+					They are currently ${upsertObj.tagsEnabled ? 'enabled' : 'disabled'}.				
+					Type \`skip\` to skip this step.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -138,14 +142,16 @@ class Setup extends StarbotCommand {
 		}
 
 		async function askIgnoredChannels() {
-			const question = await channel.embed(client.embed(stripIndents`
-				Please type in any text channels you would like the bot to ignore. Both channel mentions and IDs are accepted.
-				You will have 60 seconds in this wizard to add all the channels.
-				Type \`done\` when you are done.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Setup wizard for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Setup wizard for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please type in any text channels you would like the bot to ignore. Both channel mentions and IDs are accepted.
+					You will have 60 seconds in this wizard to add all the channels.
+					Type \`done\` when you are done.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, { time: 60000 });
 
 			collector.on('collect', msg => {
@@ -188,14 +194,16 @@ class Setup extends StarbotCommand {
 		}
 
 		async function askStarboard() {
-			const question = await channel.embed(client.embed(stripIndents`
-				Would you like to ${upsertObj.starboardEnabled ? 'disable' : 'enable'} the starboard? Please type yes or no.
-				The starboard is currently ${upsertObj.starboardEnabled ? 'enabled' : 'disabled'}.				
-				Type \`skip\` to skip this step.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Setup wizard for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Setup wizard for ${guild.name}`)
+				.setDescription(stripIndents`
+					Would you like to ${upsertObj.starboardEnabled ? 'disable' : 'enable'} the starboard? Please type yes or no.
+					The starboard is currently ${upsertObj.starboardEnabled ? 'enabled' : 'disabled'}.				
+					Type \`skip\` to skip this step.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -235,14 +243,16 @@ class Setup extends StarbotCommand {
 
 		async function askStarboardChannel() {
 			const starboard = guild.starboard.channel;
-			const question = await channel.embed(client.embed(stripIndents`
-				Please set the starboard channel.
-				${starboard ? `The current starboard is ${starboard.toString()}.` : 'There is no starboard channel right now.'}
-				Type \`skip\` to skip this step.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Setup wizard for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Setup wizard for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please set the starboard channel.
+					${starboard ? `The current starboard is ${starboard.toString()}.` : 'There is no starboard channel right now.'}
+					Type \`skip\` to skip this step.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -281,14 +291,16 @@ class Setup extends StarbotCommand {
 		}
 
 		async function askReactionThreshold() {
-			const question = await channel.embed(client.embed(stripIndents`
-				Please set the number of stars a message needs in order to be posted on the starboard.
-				The current reaction threshold is ${upsertObj.reactionThreshold} ⭐.
-				Type \`skip\` to skip this step.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Setup wizard for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Setup wizard for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please set the number of stars a message needs in order to be posted on the starboard.
+					The current reaction threshold is ${upsertObj.reactionThreshold} ⭐.
+					Type \`skip\` to skip this step.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -343,7 +355,7 @@ class Setup extends StarbotCommand {
 				.addField('Tags enabled?', upsertObj.tagsEnabled ? 'Yes' : 'No', true)
 				.addField('Ignored channels', displayedChannels, true);
 			
-			await channel.embed(embed);
+			await channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}

@@ -49,7 +49,7 @@ class ServerInfo extends StarbotCommand {
 			.addField('Verified', guild.verified ? 'Yes' : 'No', true)
 			.addField('Verification level', cfl(guild.verificationLevel.toLowerCase().replace(/_/g, ' ')), true);
 
-		return channel.embed(embed);
+		return channel.send(embed);
 	}
 }
 

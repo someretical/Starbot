@@ -31,7 +31,7 @@ class ViewSettings extends StarbotCommand {
 				.concat(ignoredChannels.length > 10 ? ` and ${ignoredChannels.length - 10} more` : '');
 		}
 
-		channel.embed(client.embed(null, true)
+		const embed = client.embed(null, true)
 			.setTitle(`Settings for ${message.guild.name}`)
 			.setThumbnail(message.guild.iconURL())
 			.addField('Prefix', `\`${settings.prefix}\``, true)
@@ -39,7 +39,9 @@ class ViewSettings extends StarbotCommand {
 			.addField('Starboard enabled?', settings.starboardEnabled ? 'Yes' : 'No', true)
 			.addField('Reaction threshold', `${settings.reactionThreshold} ⭐`, true)
 			.addField('Tags enabled?', settings.tagsEnabled ? 'Yes' : 'No', true)
-			.addField('Ignored channels', displayedChannels, true));
+			.addField('Ignored channels', displayedChannels, true);
+
+		channel.send(embed);
 	}
 }
 

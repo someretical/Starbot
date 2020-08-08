@@ -40,7 +40,7 @@ class TagInfo extends StarbotCommand {
 			return channel.embed('That tag does not exist!');
 		}
 
-		const infoEmbed = new MessageEmbed()
+		const embed = client.embed(null, true)
 			.setTitle(`Tag information: ${tag.name}`)
 			.setThumbnail(message.guild.iconURL())
 			.addField('Name', tag.name, true)
@@ -49,12 +49,12 @@ class TagInfo extends StarbotCommand {
 			.addField('Created on', moment(tag.createdAt).format('Do MMM YYYY'), true);
 
 		if (tag.updatedAt && tag.lastContentUpdate.getTime() !== tag.createdAt.getTime()) {
-			infoEmbed.addField('Last updated at', moment(tag.updatedAt).format('Do MMM YYYY'), true);
+			embed.addField('Last updated at', moment(tag.updatedAt).format('Do MMM YYYY'), true);
 		}
 
-		infoEmbed.addField('Uses', `${tag.uses} use${s(tag.uses)}`, true);
+		embed.addField('Uses', `${tag.uses} use${s(tag.uses)}`, true);
 
-		return channel.embed(infoEmbed, true);
+		return channel.send(embed);
 	}
 }
 
