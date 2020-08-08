@@ -31,7 +31,7 @@ class ServerIcon extends StarbotCommand {
 			.setAuthor(guild.name, url, url)
 			.setImage(url);
 
-		return channel.embed(embed);
+		return channel.send(embed);
 	}
 }
 

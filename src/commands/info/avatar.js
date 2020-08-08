@@ -44,7 +44,7 @@ class Avatar extends StarbotCommand {
 			.setAuthor(user.tag, url, url)
 			.setImage(url);
 
-		return channel.embed(embed);
+		return channel.send(embed);
 	}
 }
 
