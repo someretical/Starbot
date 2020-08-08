@@ -28,7 +28,7 @@ const Guild = db.define('Guild', {
 	},
 	tagsEnabled: {
 		type: Sequelize.BOOLEAN,
-		defaultValue: true,
+		defaultValue: false,
 	},
 	ignoredChannels: {
 		type: Sequelize.TEXT,
