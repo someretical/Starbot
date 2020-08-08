@@ -32,7 +32,7 @@ class AddCoins extends StarbotCommand {
 			return channel.embed(`You can claim your next bag of coins in ${timeLeft}. Please be patient.`);
 		}
 
-		const upsertObj = author.data.get();
+		const upsertObj = author.data.toJSON();
 		upsertObj.coins += 100;
 
 		const [updatedUser] = await author.queue(() => models.User.upsert(upsertObj));
