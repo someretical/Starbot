@@ -201,7 +201,7 @@ class EditTag extends StarbotCommand {
 				return channel.awaiting.delete(author.id);
 			}
 
-			const upsertObj = { ...tag.get() };
+			const upsertObj = tag.toJSON();
 			upsertObj.lastContentUpdate = new Date();
 
 			if (newName) upsertObj.name = newName;

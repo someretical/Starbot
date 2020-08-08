@@ -54,7 +54,7 @@ class TransferCoins extends StarbotCommand {
 		let user1 = null, user2 = null;
 
 		await client.sequelize.transaction(async t => {
-			const upsertObj1 = authorData.get();
+			const upsertObj1 = authorData.toJSON();
 			upsertObj1.coins -= amount;
 
 			const [user1_] = await author.queue(() => models.User.upsert(upsertObj1, {
@@ -62,7 +62,7 @@ class TransferCoins extends StarbotCommand {
 			}));
 			user1 = user1_;
 
-			const upsertObj2 = user.data.get();
+			const upsertObj2 = user.data.toJSON();
 			upsertObj2.coins += amount;
 
 			const [user2_] = await user.queue(() => models.User.upsert(upsertObj2, {
