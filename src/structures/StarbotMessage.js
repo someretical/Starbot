@@ -47,7 +47,7 @@ module.exports = Discord.Structures.extend('Message', Message => {
 
 			await this.channel.send(this.tag.response);
 
-			const upsertObj = { ...this.tag.get() };
+			const upsertObj = this.tag.toJSON();
 			upsertObj.uses++;
 
 			const [updatedTag] = await this.guild.queue(() => this.client.db.models.Tag.upsert(upsertObj));

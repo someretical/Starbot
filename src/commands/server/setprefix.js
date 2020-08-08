@@ -42,7 +42,7 @@ class SetPrefix extends StarbotCommand {
 			return channel.embed('Please choose a prefix that is between 1 and 10 characters long!');
 		}
 
-		const upsertObj = guild.settings.get();
+		const upsertObj = guild.settings.toJSON();
 		upsertObj.prefix = sanitised;
 
 		const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
