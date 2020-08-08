@@ -111,7 +111,6 @@ class StarbotCommand {
 		return null;
 	}
 
-	// No global throttles available for DM commands
 	// Returns null or error
 	async globalThrottle(message, command, duration) {
 		const { cache, models } = message.client.db;
