@@ -16,13 +16,13 @@ const client = new Starbot({
 	disableEveryone: false,
 	partials: [],
 	disabledEvents: [],
-	retryLimit: 1,
+	retryLimit: 0,
 	presence: {
 		status: 'online',
 		afk: false,
 		activity: {
-			name: 'myself being tweaked',
-			type: 'WATCHING',
+			name: '@Starbot help',
+			type: 'PLAYING',
 		},
 	},
 });
