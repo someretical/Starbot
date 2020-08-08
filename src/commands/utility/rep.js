@@ -44,7 +44,7 @@ class Rep extends StarbotCommand {
 
 		await user.add();
 
-		const upsertObj = user.data.get();
+		const upsertObj = user.data.;
 		upsertObj.reputation++;
 
 		const [updatedUser] = await user.queue(() => models.User.upsert(upsertObj));
