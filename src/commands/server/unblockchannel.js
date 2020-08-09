@@ -41,7 +41,7 @@ class UnblockChannel extends StarbotCommand {
 
 		const upsertObj = guild.settings.toJSON();
 		upsertObj.ignoredChannels = JSON.parse(upsertObj.ignoredChannels);
-		
+
 		if (upsertObj.ignoredChannels.includes(id)) {
 			upsertObj.ignoredChannels.splice(upsertObj.ignoredChannels.indexOf(id), 1);
 			upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);

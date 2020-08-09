@@ -1,6 +1,6 @@
 'use strict';
 
-const { oneLine } = require('common-tags');
+const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 class UnblockUser extends StarbotCommand {
@@ -55,7 +55,7 @@ class UnblockUser extends StarbotCommand {
 				`);
 
 			channel.send(embed);
-			
+
 			return channel.awaiting.delete(author.id);
 		}
 
