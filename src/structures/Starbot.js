@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const Discord = require('discord.js');
 const { Op } = require('sequelize');
-const logger = require('../util/logger.js');
-const { pluralize: s } = require('../util/util.js');
+const Logger = require('../util/Logger.js');
+const { pluralize: s } = require('../util/Util.js');
 const StarbotCommand = require('./StarbotCommand.js');
 const StarbotDatabase = require('./StarbotDatabase.js');
 
@@ -54,7 +54,7 @@ class Starbot extends Discord.Client {
 		await StarbotDatabase.authenticate();
 		await this.cacheDatabase();
 
-		await this.login(process.env.TOKEN).catch(logger.err);
+		await this.login(process.env.TOKEN).catch(Logger.err);
 	}
 
 	// Returns undefined
@@ -70,9 +70,9 @@ class Starbot extends Discord.Client {
 				eventCount++;
 			}
 
-			logger.info(`Loaded ${eventCount} event${s(eventCount)}`);
+			Logger.info(`Loaded ${eventCount} event${s(eventCount)}`);
 		} catch (err) {
-			logger.err(err, 'Failed to load events');
+			Logger.err(err, 'Failed to load events');
 
 			process.exit();
 		}
@@ -96,7 +96,7 @@ class Starbot extends Discord.Client {
 					let command = require(`../${commandPath.match(/\.\/src\/(.+)/)[1]}`);
 
 					if (!(command.prototype instanceof StarbotCommand)) {
-						logger.warn(`Skipping command ${commandPath}`);
+						Logger.warn(`Skipping command ${commandPath}`);
 
 						continue;
 					}
@@ -113,9 +113,9 @@ class Starbot extends Discord.Client {
 				}
 			}
 
-			logger.info(`Loaded ${groups.length} group${s(groups.length)} & ${commandCount} command${s(commandCount)}`);
+			Logger.info(`Loaded ${groups.length} group${s(groups.length)} & ${commandCount} command${s(commandCount)}`);
 		} catch (err) {
-			logger.err(err, 'Failed to load commands');
+			Logger.err(err, 'Failed to load commands');
 
 			process.exit();
 		}
@@ -169,7 +169,7 @@ class Starbot extends Discord.Client {
 
 		this.ready = true;
 
-		logger.info('Successfully cached models');
+		Logger.info('Successfully cached models');
 	}
 }
 

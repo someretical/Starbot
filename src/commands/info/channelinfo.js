@@ -1,7 +1,7 @@
 'use strict';
 
 const moment = require('moment');
-const { capitaliseFirstLetter: cfl, pluralize } = require('../../util/util.js');
+const { capitaliseFirstLetter: cfl, pluralize } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 class ChannelInfo extends StarbotCommand {

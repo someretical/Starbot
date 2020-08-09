@@ -1,9 +1,9 @@
 'use strict';
 
-const logger = require('../util/logger.js');
+const Logger = require('../util/Logger.js');
 
 module.exports = async client => {
-	logger.info(`Logged in as ${client.user.tag} (${client.user.id})`);
+	Logger.info(`Logged in as ${client.user.tag} (${client.user.id})`);
 
 	await client.user.add();
 
