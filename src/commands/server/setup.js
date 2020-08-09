@@ -28,6 +28,7 @@ class Setup extends StarbotCommand {
 		const re = /^cancel$/i;
 		const skip = /^skip$/i;
 		const upsertObj = guild.settings.toJSON();
+		upsertObj.ignoredChannels = JSON.parse(upsertObj.ignoredChannels);
 
 		channel.awaiting.add(author.id);
 

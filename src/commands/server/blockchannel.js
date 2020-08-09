@@ -43,6 +43,7 @@ class BlockChannel extends StarbotCommand {
 		}
 
 		const upsertObj = guild.settings.toJSON();
+		upsertObj.ignoredChannels = JSON.parse(upsertObj.ignoredChannels);
 
 		if (upsertObj.ignoredChannels.includes(id)) {
 			return channel.embed('This channel is already ignored by the bot!');
