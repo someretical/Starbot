@@ -45,7 +45,11 @@ module.exports = Discord.Structures.extend('Message', Message => {
 		async sendTag() {
 			if (!this.guild.settings.tagsEnabled) return null;
 
-			await this.channel.send(this.tag.response);
+			const response = this.tag.response.replace(/<guild_name>/ig, this.guild.name)
+				.replace(/<channel>/ig, this.channel.toString())
+				.replace(/<author>/ig, this.author.toString());
+
+			await this.channel.send(response);
 
 			const upsertObj = this.tag.toJSON();
 			upsertObj.uses++;
