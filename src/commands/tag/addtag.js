@@ -115,8 +115,8 @@ class AddTag extends StarbotCommand {
 				`)
 				.addField('Placeholders', stripIndents`
 					• \`<guild_name>\` will be replaced with the name of the server
-					• \`<channel_name>\` will be replaced with the mention of the channel
-					• \`<author_name>\` will be replaced with the mention of the author
+					• \`<channel>\` will be replaced with the mention of the channel
+					• \`<author>\` will be replaced with the mention of the author
 				`);
 
 			const question = await channel.send(embed);
