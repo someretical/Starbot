@@ -3,7 +3,7 @@
 const { MessageEmbed } = require('discord.js');
 const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { pluralize: s } = require('../../util/util.js');
+const { pluralize: s } = require('../../util/Util.js');
 
 class TagInfo extends StarbotCommand {
 	constructor(client) {

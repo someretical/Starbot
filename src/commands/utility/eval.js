@@ -2,7 +2,7 @@
 
 const { inspect } = require('util');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { sanitise } = require('../../util/util.js');
+const { sanitise } = require('../../util/Util.js');
 
 class Eval extends StarbotCommand {
 	constructor(client) {
