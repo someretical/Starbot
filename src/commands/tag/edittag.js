@@ -36,32 +36,34 @@ class EditTag extends StarbotCommand {
 		return askName();
 
 		function cancel() {
-			channel.embed(client.embed(oneLine`
-				The tag editing process has been successfully cancelled.
-				All changes have been discarded.
-				`, true)
-				.setTitle(`Edit a tag for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setDescription('The tag editing process has been successfully cancelled. All changes have been discarded.')
+				.setTitle(`Edit a tag for ${guild.name}`);
+				
+			channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}
 
 		function timeUp() {
-			channel.embed(client.embed(oneLine`
-				Sorry but the message collector timed out.
-				Please run the command again.
-				`, true)
-				.setTitle(`Edit a tag for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setDescription('Sorry but the message collector timed out. Please run the command again.')
+				.setTitle(`Edit a tag for ${guild.name}`);
+
+			channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}
 
 		async function askName() {
-			const question = await channel.embed(client.embed(stripIndents`
-				Please enter the name of the tag you wish to edit.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Edit a tag for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Edit a tag for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please enter the name of the tag you wish to edit.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -93,13 +95,15 @@ class EditTag extends StarbotCommand {
 		}
 
 		async function askNewName(obj) {
-			const question = await channel.embed(client.embed(stripIndents`
-				Please enter the new name of the tag.
-				Type \`skip\` to skip this step.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Edit a tag for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Edit a tag for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please enter the new name of the tag.
+					Type \`skip\` to skip this step.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -147,18 +151,19 @@ class EditTag extends StarbotCommand {
 		}
 
 		async function askNewResponse(obj) {
-			const question = await channel.embed(client.embed(stripIndents`
-				Please enter the new response for the tag.
-				Type \`skip\` to skip this step.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
+			const embed = client.embed(null, true)
 				.setTitle(`Edit a tag for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please enter the name of the tag you wish to edit.
+					Type \`cancel\` at any time to stop the process.
+				`)
 				.addField('Placeholders', stripIndents`
-				• \`<guild_name>\` will be replaced with the name of the server
-				• \`<channel_name>\` will be replaced with the mention of the channel
-				• \`<author_name>\` will be replaced with the mention of the author
-			`));
+					• \`<guild_name>\` will be replaced with the name of the server
+					• \`<channel_name>\` will be replaced with the mention of the channel
+					• \`<author_name>\` will be replaced with the mention of the author
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -213,11 +218,14 @@ class EditTag extends StarbotCommand {
 
 			cache.Tag.set(guild.id + (newName || oldName), updatedTag);
 
-			await channel.embed(client.embed(oneLine`
-				The \`${oldName}\` tag has been successfully edited.
-				${newName ? `Its new name is \`${newName}\`` : ''}
-			`, true)
-				.setTitle(`Edit a tag for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Edit a tag for ${guild.name}`)
+				.setDescription(stripIndents`
+					The \`${oldName}\` tag has been successfully edited.
+					${newName ? `Its new name is \`${newName}\`` : ''}
+				`);
+
+			await channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}
