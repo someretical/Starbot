@@ -62,17 +62,17 @@ module.exports = Discord.Structures.extend('Message', Message => {
 
 		// Returns parsed StarbotMessage
 		parse() {
-			const prefix = this.guild && this.guild.settings.prefix ? 
-				sanitise(this.guild.settings.prefix) : 
+			const prefix = this.guild && this.guild.settings.prefix ?
+				sanitise(this.guild.settings.prefix) :
 				this.client.prefix;
 			const prefixPattern = new RegExp(`^(<@!?${this.client.user.id}>\\s+|${prefix})(\\S+)`);
-			
+
 			const matched = this.content.match(prefixPattern);
 			if (matched) {
 				this.prefix = matched[1];
 				this.raw.command = matched[2];
 			}
-			
+
 			if (this.guild) {
 				this.tag = this.guild.tags.get(this.guild.id + this.raw.command.toLowerCase());
 			}

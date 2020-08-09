@@ -1,6 +1,6 @@
 'use strict';
 
-const { oneLine, stripIndents } = require('common-tags');
+const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 class Setup extends StarbotCommand {
@@ -121,9 +121,11 @@ class Setup extends StarbotCommand {
 				const yes = /^y(?:es)?$/i;
 				const no = /^no?$/i;
 
-				if (upsertObj.tagsEnabled && yes.test(msg.content) || !upsertObj.tagsEnabled && no.test(msg.content)) {
-					upsertObj.tagsEnabled = false
-				} else if (upsertObj.tagsEnabled && no.test(msg.content) || !upsertObj.tagsEnabled && yes.test(msg.content)) {
+				if ((upsertObj.tagsEnabled && yes.test(msg.content)) ||
+					(!upsertObj.tagsEnabled && no.test(msg.content))) {
+					upsertObj.tagsEnabled = false;
+				} else if ((upsertObj.tagsEnabled && no.test(msg.content)) ||
+					(!upsertObj.tagsEnabled && yes.test(msg.content))) {
 					upsertObj.tagsEnabled = true;
 				} else {
 					return channel.embed('Please provide a yes/no answer!');
@@ -219,9 +221,11 @@ class Setup extends StarbotCommand {
 				const yes = /^y(?:es)?$/i;
 				const no = /^no?$/i;
 
-				if (upsertObj.starboardEnabled && yes.test(msg.content) || !upsertObj.starboardEnabled && no.test(msg.content)) {
+				if ((upsertObj.starboardEnabled && yes.test(msg.content)) ||
+					(!upsertObj.starboardEnabled && no.test(msg.content))) {
 					upsertObj.starboardEnabled = false;
-				} else if (upsertObj.starboardEnabled && no.test(msg.content) || !upsertObj.starboardEnabled && yes.test(msg.content)) {
+				} else if ((upsertObj.starboardEnabled && no.test(msg.content)) ||
+					(!upsertObj.starboardEnabled && yes.test(msg.content))) {
 					upsertObj.starboardEnabled = true;
 				} else {
 					return channel.embed('Please provide a yes/no answer!');
@@ -248,7 +252,7 @@ class Setup extends StarbotCommand {
 				.setTitle(`Setup wizard for ${guild.name}`)
 				.setDescription(stripIndents`
 					Please set the starboard channel.
-					${starboard ? `The current starboard is ${starboard.toString()}.` : 'There is no starboard channel right now.'}
+					${starboard ? `The current starboard is ${starboard.toString()}.` : 'It has not been set yet.'}
 					Type \`skip\` to skip this step.
 					Type \`cancel\` at any time to stop the process.
 				`);
@@ -355,7 +359,7 @@ class Setup extends StarbotCommand {
 				.addField('Reaction threshold', `${upsertObj.reactionThreshold} ⭐`, true)
 				.addField('Tags enabled?', upsertObj.tagsEnabled ? 'Yes' : 'No', true)
 				.addField('Ignored channels', displayedChannels, true);
-			
+
 			await channel.send(embed);
 
 			return channel.awaiting.delete(author.id);

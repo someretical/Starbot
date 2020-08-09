@@ -100,7 +100,7 @@ class Help extends StarbotCommand {
 			`, true);
 		}
 
-		channel.send(embed);
+		return channel.send(embed);
 	}
 }
 
