@@ -1,7 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { pluralize: s } = require('../../util/util.js');
+const { pluralize: s } = require('../../util/Util.js');
 
 class TagList extends StarbotCommand {
 	constructor(client) {

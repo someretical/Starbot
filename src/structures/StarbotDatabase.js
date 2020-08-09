@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-const logger = require('../util/logger.js');
+const Logger = require('../util/Logger.js');
 
 const sequelize = new Sequelize({
 	host: process.env.HOST,
@@ -27,7 +27,7 @@ class StarbotDatabase {
 
 		for (const file of files) {
 			if (!file.endsWith('.js')) {
-				logger.info(`Skipping model ${file}`);
+				Logger.info(`Skipping model ${file}`);
 				continue;
 			}
 
@@ -39,25 +39,25 @@ class StarbotDatabase {
 	static async authenticate() {
 		try {
 			await StarbotDatabase.db.authenticate();
-			logger.info('Successfully authenticated with database');
+			Logger.info('Successfully authenticated with database');
 
 			try {
 				await StarbotDatabase.loadModels();
-				logger.info('Successing loaded models');
+				Logger.info('Successing loaded models');
 
 				const force = process.argv.includes('--force') || process.argv.includes('-f');
 
 				if (force) {
 					await StarbotDatabase.db.sync({ force });
-					logger.info(`${force ? 'Forcibly s' : 'S'}ynced database`);
+					Logger.info(`${force ? 'Forcibly s' : 'S'}ynced database`);
 				}
 			} catch (err) {
-				logger.err(err, 'Failed to load models');
+				Logger.err(err, 'Failed to load models');
 				process.exit();
 			}
 		} catch (err) {
-			logger.err(err, 'Failed to authenticate with database');
-			logger.info('Attempting to connect again in 5 seconds...');
+			Logger.err(err, 'Failed to authenticate with database');
+			Logger.info('Attempting to connect again in 5 seconds...');
 
 			setTimeout(StarbotDatabase.authenticate, 5000);
 		}

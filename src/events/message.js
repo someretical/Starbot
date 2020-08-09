@@ -1,8 +1,8 @@
 'use strict';
 
 const moment = require('moment');
-const logger = require('../util/logger.js');
-const { fancyJoin, prettifyPermissions } = require('../util/util.js');
+const Logger = require('../util/Logger.js');
+const { fancyJoin, prettifyPermissions } = require('../util/Util.js');
 
 module.exports = async (client, message) => {
 	const { guild, channel, author } = message;
@@ -81,7 +81,7 @@ module.exports = async (client, message) => {
 		channel.awaiting.delete(author.id);
 		channel.error(err, 'runCommand');
 
-		logger.err(err, 'Failed to run command');
+		Logger.err(err, 'Failed to run command');
 	} finally {
 		return null;
 	}

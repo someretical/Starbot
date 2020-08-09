@@ -1,7 +1,7 @@
 'use strict';
 
 const Discord = require('discord.js');
-const { sanitise } = require('../util/util.js');
+const { sanitise } = require('../util/Util.js');
 
 module.exports = Discord.Structures.extend('Message', Message => {
 	class StarbotMessage extends Message {

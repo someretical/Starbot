@@ -3,7 +3,7 @@
 const path = require('path');
 const { Collection } = require('discord.js');
 const moment = require('moment');
-const logger = require('../util/logger.js');
+const Logger = require('../util/Logger.js');
 const StarbotQueue = require('./StarbotQueue.js');
 
 class StarbotCommand {
@@ -33,7 +33,7 @@ class StarbotCommand {
 
 			this.client.commands.set(this.name, require(this.path));
 
-			return logger.info(`Reloaded ${this.name} command`);
+			return Logger.info(`Reloaded ${this.name} command`);
 		} catch (err) {
 			return err;
 		}
@@ -47,7 +47,7 @@ class StarbotCommand {
 
 				this.client.commands.delete(this.name);
 
-				return logger.info(`Unloaded ${this.name} command`);
+				return Logger.info(`Unloaded ${this.name} command`);
 			} else {
 				throw new Error(`Unable to unload command ${this.name}`);
 			}

@@ -1,6 +1,6 @@
 'use strict';
 
-const logger = require('../util/logger.js');
+const Logger = require('../util/Logger.js');
 
 class StarbotQueue {
 	constructor() {
@@ -29,7 +29,7 @@ class StarbotQueue {
 			this.isProcessing = false;
 		} else {
 			promiseFunction().catch(err => {
-				logger.err(err, 'Failed to execute queue promise function');
+				Logger.err(err, 'Failed to execute queue promise function');
 			}).finally(() => this.process());
 		}
 	}
