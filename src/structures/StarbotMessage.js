@@ -63,7 +63,7 @@ module.exports = Discord.Structures.extend('Message', Message => {
 		// Returns parsed StarbotMessage
 		parse() {
 			const prefix = this.guild && this.guild.settings.prefix ?
-				sanitise(this.guild.settings.prefix) :
+				sanitise(this.guild.settings.prefix, true) :
 				this.client.prefix;
 			const prefixPattern = new RegExp(`^(<@!?${this.client.user.id}>\\s+|${prefix})(\\S+)`);
 
