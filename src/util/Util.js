@@ -68,7 +68,7 @@ class Util {
 
 	// All functions below return an array with valid ids
 	static matchUsers(str) {
-		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return 'invalid';
+		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return [];
 
 		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<@!?)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
 
@@ -76,7 +76,7 @@ class Util {
 	}
 
 	static matchChannels(str) {
-		if (typeof str !== 'string' || /[^<>#\d\s]/.test(str)) return 'invalid';
+		if (typeof str !== 'string' || /[^<>#\d\s]/.test(str)) return [];
 
 		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<#)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
 
@@ -84,7 +84,7 @@ class Util {
 	}
 
 	static matchRoles(str) {
-		if (typeof str !== 'string' || /[^<>&\d\s]/.test(str)) return 'invalid';
+		if (typeof str !== 'string' || /[^<>&\d\s]/.test(str)) return [];
 
 		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<&)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
 
