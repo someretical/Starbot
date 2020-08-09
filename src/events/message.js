@@ -7,22 +7,22 @@ const { fancyJoin, prettifyPermissions } = require('../util/util.js');
 module.exports = async (client, message) => {
 	const { guild, channel, author } = message;
 
-	if (message.system || (message.guild && !message.guild.available) || !client.ready) return;
+	if (message.system || (message.guild && !message.guild.available) || !client.ready) return null;
 
 	if (guild) {
 		await guild.cacheClient();
 		await guild.add();
 
-		if (!channel.clientHasPermissions()) return;
+		if (!channel.clientHasPermissions()) return null;
 	}
 
 	await author.add();
 
-	if (message.author.bot) return;
+	if (message.author.bot) return null;
 
 	message.parse();
 
-	if (message.ignored && !client.isOwner(author.id)) return;
+	if (message.ignored && !client.isOwner(author.id)) return null;
 
 	if (!message.DM && message.tag) {
 		try {
@@ -30,14 +30,13 @@ module.exports = async (client, message) => {
 		} catch (err) {
 			channel.error(err, 'sendTag');
 		}
-		return;
+		return null;
 	}
 
-	if (!message.command) return;
+	if (!message.command) return null;
 
 	if (message.DM && message.command.guildOnly) {
-		channel.embed('This command can only be used in a server!');
-		return;
+		return channel.embed('This command can only be used in a server!');
 	}
 
 	let permissions = message.missingAuthorPermissions;
@@ -45,13 +44,11 @@ module.exports = async (client, message) => {
 	if (permissions.length && !client.isOwner(author.id)) {
 		permissions = fancyJoin(prettifyPermissions(permissions));
 
-		channel.embed(`You need the following permissions to run this command: ${permissions}`);
-		return;
+		return channel.embed(`You need the following permissions to run this command: ${permissions}`);
 	}
 
 	if (message.command.ownerOnly && !client.isOwner(author.id)) {
-		channel.embed('This is an owner-only command!');
-		return;
+		return channel.embed('This is an owner-only command!');
 	}
 
 	let timeLeft = message.command.checkThrottle(message);
@@ -59,8 +56,7 @@ module.exports = async (client, message) => {
 	if (timeLeft) {
 		timeLeft = moment(timeLeft).fromNow(true);
 
-		channel.embed(`You are sending commands too fast! Please wait ${timeLeft} to use this command again.`);
-		return;
+		return channel.embed(`You are sending commands too fast! Please wait ${timeLeft} to use this command again.`);
 	}
 
 	if (message.command.clientPermissions.length) {
@@ -70,12 +66,10 @@ module.exports = async (client, message) => {
 			if (!canRun) {
 				canRun = fancyJoin(prettifyPermissions(canRun));
 
-				channel.embed(`The bot needs the following permissions to run this command: ${canRun}`);
-				return;
+				return channel.embed(`The bot needs the following permissions to run this command: ${canRun}`);
 			}
 		} catch (err) {
-			channel.err(err, 'checkClientPermissions');
-			return;
+			return channel.err(err, 'checkClientPermissions');
 		}
 	}
 
@@ -88,5 +82,7 @@ module.exports = async (client, message) => {
 		channel.error(err, 'runCommand');
 
 		logger.err(err, 'Failed to run command');
+	} finally {
+		return null;
 	}
 };

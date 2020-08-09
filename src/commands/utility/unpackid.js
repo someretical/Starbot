@@ -43,7 +43,7 @@ class UnpackID extends StarbotCommand {
 			.addField('Process ID', processID, true)
 			.addField('Increment', increment, true);
 
-		return channel.embed(embed);
+		return channel.send(embed);
 	}
 }
 

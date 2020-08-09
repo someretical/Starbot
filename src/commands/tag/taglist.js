@@ -24,14 +24,14 @@ class TagList extends StarbotCommand {
 		const { client, channel, guild } = message;
 		const tags = guild.tags;
 
-		const tagEmbed = client.embed(`${guild.name} has ${tags.size} tag${s(tags.size)} in total.`, true)
+		const embed = client.embed(`${guild.name} has ${tags.size} tag${s(tags.size)} in total.`, true)
 			.setTitle(`${guild.name} tags`);
 
 		tags.forEach(tag => {
-			tagEmbed.addField(tag.name, `Created by <@!${tag.creator_id}>`, true);
+			embed.addField(tag.name, `Created by <@!${tag.creator_id}>`, true);
 		});
 
-		return channel.embed(tagEmbed);
+		return channel.send(embed);
 	}
 }
 
