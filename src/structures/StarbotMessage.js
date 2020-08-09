@@ -62,34 +62,25 @@ module.exports = Discord.Structures.extend('Message', Message => {
 
 		// Returns parsed StarbotMessage
 		parse() {
-			let prefixPattern = null;
-
-			if (this.guild) {
-				const guildPrefix = sanitise(this.guild.settings.prefix);
-
-				prefixPattern = new RegExp(
-					`^(<@!?${this.client.user.id}>\\s+(?:${guildPrefix}\\s*)?|${guildPrefix}\\s*)([^\\s]+)`, 'i');
-			} else {
-				prefixPattern = new RegExp(`^(<@!?${this.client.user.id}>\\s+|${this.client.prefix})([^\\s]+)`, 'i');
-			}
-
-			if (prefixPattern.test(this.content)) {
-				const matched = this.content.match(prefixPattern);
-
+			const prefix = this.guild.settings.prefix ? sanitise(this.guild.settings.prefix) : this.client.prefix;
+			const prefixPattern = new RegExp(`^(<@!?${this.client.user.id}>\\s+|${prefix})(\\S+)`);
+			
+			const matched = this.content.match(prefixPattern);
+			if (matched) {
 				this.prefix = matched[1];
 				this.raw.command = matched[2];
 			}
-
-			if (this.guild) this.tag = this.guild.tags.get(this.guild.id + this.raw.command.toLowerCase());
+			
+			if (this.guild) {
+				this.tag = this.guild.tags.get(this.guild.id + this.raw.command.toLowerCase());
+			}
 
 			let cleanedCmdName = this.raw.command.toLowerCase().trim();
-
 			if (this.client.aliases.has(cleanedCmdName)) {
 				cleanedCmdName = this.client.aliases.get(cleanedCmdName);
 			}
 
 			this.command = this.client.commands.find(cmd => cleanedCmdName === cmd.name);
-
 			if (this.command) {
 				this.raw.args = this.content.slice(this.prefix.length + this.raw.command.length).trim();
 
