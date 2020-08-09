@@ -34,7 +34,6 @@ class Util {
 	}
 
 	// Returns sanitised result
-	// Regex option escapes all regex characters
 	static sanitise(result, regex = false) {
 		let cleansed = result.toString()
 			.replace(process.env.TOKEN, 'here is the token you retard')
@@ -65,6 +64,31 @@ class Util {
 		});
 
 		return perms;
+	}
+
+	// All functions below return an array with valid ids
+	static matchUsers(str) {
+		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return 'invalid';
+
+		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<@!?)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
+
+		return matches.map(arr => arr[0]);
+	}
+
+	static matchChannels(str) {
+		if (typeof str !== 'string' || /[^<>#\d\s]/.test(str)) return 'invalid';
+
+		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<#)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
+
+		return matches.map(arr => arr[0]);
+	}
+
+	static matchRoles(str) {
+		if (typeof str !== 'string' || /[^<>&\d\s]/.test(str)) return 'invalid';
+
+		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<&)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
+
+		return matches.map(arr => arr[0]);
 	}
 }
 

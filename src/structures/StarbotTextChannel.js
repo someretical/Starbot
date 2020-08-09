@@ -1,7 +1,7 @@
 'use strict';
 
 const Discord = require('discord.js');
-const { formatErrorDiscord } = require('../util/util.js');
+const { formatErrorDiscord } = require('../util/Util.js');
 
 module.exports = Discord.Structures.extend('TextChannel', TextChannel => {
 	class StarbotTextChannel extends TextChannel {

@@ -3,7 +3,7 @@
 const { oneLine, stripIndents } = require('common-tags');
 const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { capitaliseFirstLetter: cfl, fancyJoin, prettifyPermissions } = require('../../util/util.js');
+const { capitaliseFirstLetter: cfl, fancyJoin, prettifyPermissions } = require('../../util/Util.js');
 
 class Help extends StarbotCommand {
 	constructor(client) {

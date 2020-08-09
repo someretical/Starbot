@@ -1,6 +1,6 @@
 'use strict';
 
-const { capitaliseFirstLetter } = require('../util/util.js');
+const { capitaliseFirstLetter } = require('../util/Util.js');
 
 const events = [
 	'MESSAGE_UPDATE',

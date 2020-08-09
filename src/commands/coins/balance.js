@@ -1,7 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { pluralize } = require('../../util/util.js');
+const { pluralize } = require('../../util/Util.js');
 
 class Balance extends StarbotCommand {
 	constructor(client) {
