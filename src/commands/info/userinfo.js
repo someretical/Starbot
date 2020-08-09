@@ -72,7 +72,7 @@ class UserInfo extends StarbotCommand {
 		embed.addField('Coins', `${data.coins} coin${pluralize(data.coins)}`, true)
 			.addField('Reputation', `${data.reputation} reputation`, true);
 
-		return channel.embed(embed);
+		return channel.send(embed);
 	}
 }
 

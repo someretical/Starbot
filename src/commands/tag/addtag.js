@@ -41,32 +41,34 @@ class AddTag extends StarbotCommand {
 		return askName();
 
 		function cancel() {
-			channel.embed(client.embed(oneLine`
-				The tag creation process has been successfully cancelled.
-				All changes have been discarded.
-				`, true)
-				.setTitle(`Create a new tag for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Create a new tag for ${guild.name}`)
+				.setDescription('The tag creation process has been successfully cancelled. All changes have been discarded.');
+
+			channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}
 
 		function timeUp() {
-			channel.embed(client.embed(oneLine`
-				Sorry but the message collector timed out.
-				Please run the command again.
-				`, true)
-				.setTitle(`Create a new tag for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Create a new tag for ${guild.name}`)
+				.setDescription('Sorry but the message collector timed out. Please run the command again.');
+
+			channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}
 
 		async function askName() {
-			const question = await channel.embed(client.embed(stripIndents`
-				Please enter the name of the new tag.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Create a new tag for ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Create a new tag for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please enter the name of the new tag.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -105,17 +107,19 @@ class AddTag extends StarbotCommand {
 		}
 
 		async function askResponse(obj) {
-			const question = await channel.embed(client.embed(stripIndents`
-				Please enter the response for the tag \`${obj.name}\`.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
+			const embed = client.embed(null, true)
+				.setTitle(`Create a new tag for ${guild.name}`)
+				.setDescription(stripIndents`
+					Please enter the response for the tag \`${obj.name}\`.
+					Type \`cancel\` at any time to stop the process.
+				`)
 				.addField('Placeholders', stripIndents`
-				• \`<guild_name>\` will be replaced with the name of the server
-				• \`<channel_name>\` will be replaced with the mention of the channel
-				• \`<author_name>\` will be replaced with the mention of the author
-			`)
-				.setTitle(`Create a new tag for ${guild.name}`));
+					• \`<guild_name>\` will be replaced with the name of the server
+					• \`<channel_name>\` will be replaced with the mention of the channel
+					• \`<author_name>\` will be replaced with the mention of the author
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -151,8 +155,10 @@ class AddTag extends StarbotCommand {
 
 			cache.Tag.set(guild.id + name, tag);
 
-			await channel.embed(client.embed(`The \`${name}\` tag has been successfully created.`, true)
-				.setTitle(`Create a new tag for ${guild.name}`));
+			const embed = client.embed(`The \`${name}\` tag has been successfully created.`, true)
+				.setTitle(`Create a new tag for ${guild.name}`);
+
+			await channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}

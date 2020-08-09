@@ -65,7 +65,7 @@ class ChannelInfo extends StarbotCommand {
 			embed.addField('Children', `${count} channel${pluralize(count)}`, true);
 		}
 
-		return channel.embed(embed);
+		return channel.send(embed);
 	}
 }
 

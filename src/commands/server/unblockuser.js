@@ -34,33 +34,41 @@ class UnblockUser extends StarbotCommand {
 		return askUser();
 
 		function cancel() {
-			channel.embed(client.embed(oneLine`
-				The unignore process has been successfully cancelled.
-				All changes have been discarded.
-				`, true)
-				.setTitle(`Unblock a user`));
+			const embed = client.embed(null, true)
+				.setTitle(`Unblock a user on ${guild.name}`)
+				.setDescription(stripIndents`
+					The unignore process has been successfully cancelled.
+					All changes have been discarded.
+				`);
+
+			channel.send(embed);
 
 			return channel.awaiting.delete(author.id);
 		}
 
 		function timeUp() {
-			channel.embed(client.embed(oneLine`
-				Sorry but the message collector timed out.
-				Please run the command again.
-				`, true)
-				.setTitle(`Unblock a user`));
+			const embed = client.embed(null, true)
+				.setTitle(`Unblock a user on ${guild.name}`)
+				.setDescription(stripIndents`
+					Sorry but the message collector timed out.
+					Please run the command again.
+				`);
 
+			channel.send(embed);
+			
 			return channel.awaiting.delete(author.id);
 		}
 
 		async function askUser() {
-			const question = await channel.embed(client.embed(`
-				Please mention the user that you wish to unblock.
-				Alternatively, you can enter their id.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Unblock a user on ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Unblock a user on ${guild.name}`)
+				.setDescription(stripIndents`
+					Please mention the user that you wish to unblock.
+					Alternatively, you can enter their id.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
@@ -93,13 +101,15 @@ class UnblockUser extends StarbotCommand {
 		}
 
 		async function askGlobal(obj) {
-			const question = await channel.embed(client.embed(`
-				Would you like to unblock <@!${obj.user_id}> globally?
-				Type \`(y)es\` or \`(n)o\` to confirm.
-				Type \`cancel\` at any time to stop the process.
-			`, true)
-				.setTitle(`Unblock a user on ${guild.name}`));
+			const embed = client.embed(null, true)
+				.setTitle(`Unblock a user on ${guild.name}`)
+				.setDescription(stripIndents`
+					Would you like to unblock <@!${obj.user_id}> globally?
+					Type \`(y)es\` or \`(n)o\` to confirm.
+					Type \`cancel\` at any time to stop the process.
+				`);
 
+			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {

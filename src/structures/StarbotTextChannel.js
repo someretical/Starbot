@@ -17,10 +17,8 @@ module.exports = Discord.Structures.extend('TextChannel', TextChannel => {
 		}
 
 		// Returns promise
-		embed(text, fancy = false) {
-			const toBeSent = this.client.embed(text, fancy);
-
-			return this.send(toBeSent);
+		embed(text) {
+			return this.send(this.client.embed(text));
 		}
 
 		// Returns promise

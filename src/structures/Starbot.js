@@ -28,12 +28,10 @@ class Starbot extends Discord.Client {
 	// Returns partially constructed embed
 	embed(text = null, fancy = false) {
 		const homepageURL = require(path.resolve('package.json')).homepage;
-		let newEmbed = new Discord.MessageEmbed().setColor(this.embedColour);
+		const newEmbed = new Discord.MessageEmbed().setColor(this.embedColour);
 
 		if (typeof text === 'string') {
 			newEmbed.setDescription(text);
-		} else if (text) {
-			newEmbed = text.setColor(this.embedColour);
 		}
 
 		if (fancy) {
