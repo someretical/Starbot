@@ -93,17 +93,10 @@ module.exports = Discord.Structures.extend('Message', Message => {
 			if (this.command) {
 				this.raw.args = this.content.slice(this.prefix.length + this.raw.command.length).trim();
 
-				const argPattern = /\s*(?:("|')([^]*?)\1|(\S+))\s*/g;
-				let length = this.raw.args.length;
-				let match = [];
+				const re = /(?:(?=["'])(?:"[^"\\]*(?:\\[^][^"\\]*)*"|'[^'\\]*(?:\\[^][^'\\]*)*')|\S+)(?=\s+|$)/g;
+				const matches = this.raw.args.matchAll(re);
 
-				while (--length && (match = argPattern.exec(this.raw.args))) {
-					this.args.push(match[2] || match[3]);
-				}
-
-				if (match && argPattern.lastIndex < this.raw.args.length) {
-					this.args.push(this.raw.args.substr(argPattern.lastIndex).replace(/^("|')([^]*)\1$/g, '$2'));
-				}
+				this.args = Array.from(matches).map(arg => arg[0].replace(/^("|')([^]*)\1$/g, '$2'));
 			}
 
 			return this;
