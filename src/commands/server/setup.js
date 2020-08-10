@@ -2,6 +2,7 @@
 
 const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchChannel, yes: yesRe, no: noRe, cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
 
 class Setup extends StarbotCommand {
 	constructor(client) {
@@ -25,8 +26,6 @@ class Setup extends StarbotCommand {
 		const { cache, models } = message.client.db;
 		const filter = msg => msg.author.id === author.id;
 		const options = { time: 15000 };
-		const re = /^cancel$/i;
-		const skip = /^skip$/i;
 		const upsertObj = guild.settings.toJSON();
 		upsertObj.ignoredChannels = JSON.parse(upsertObj.ignoredChannels);
 
@@ -68,16 +67,15 @@ class Setup extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				if (skip.test(msg.content)) {
+				if (skipRe.test(msg.content)) {
 					return collector.stop();
 				}
 
 				const sanitised = msg.content.trim();
-
 				if (sanitised.length > 10 || !msg.content.length) {
 					return channel.embed('Please choose a prefix that is between 1 and 10 characters long!');
 				}
@@ -110,25 +108,24 @@ class Setup extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				if (skip.test(msg.content)) {
+				if (skipRe.test(msg.content)) {
 					return collector.stop();
 				}
 
-				const yes = /^y(?:es)?$/i;
-				const no = /^no?$/i;
-
-				if ((upsertObj.tagsEnabled && yes.test(msg.content)) ||
-					(!upsertObj.tagsEnabled && no.test(msg.content))) {
-					upsertObj.tagsEnabled = false;
-				} else if ((upsertObj.tagsEnabled && no.test(msg.content)) ||
-					(!upsertObj.tagsEnabled && yes.test(msg.content))) {
-					upsertObj.tagsEnabled = true;
-				} else {
+				const yes = yesRe.test(msg.content);
+				const no = noRe.test(msg.content);
+				if (!yes && !no) {
 					return channel.embed('Please provide a yes/no answer!');
+				}
+
+				if ((upsertObj.tagsEnabled && yes) || (!upsertObj.tagsEnabled && no)) {
+					upsertObj.tagsEnabled = false;
+				} else if ((upsertObj.tagsEnabled && no) || (!upsertObj.tagsEnabled && yes)) {
+					upsertObj.tagsEnabled = true;
 				}
 
 				return collector.stop();
@@ -158,7 +155,7 @@ class Setup extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, { time: 60000 });
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
@@ -166,15 +163,9 @@ class Setup extends StarbotCommand {
 					return collector.stop();
 				}
 
-				const id = (msg.content.match(/^(?:<#(\d+)>|(\d+))$/) || [])[1];
-				const channel_ = guild.channels.cache.get(id);
-
-				if (!channel_) {
-					return channel.embed('Sorry but the bot couldn\'t find that channel.');
-				}
-
-				if (!['text', 'news'].includes(channel_.type)) {
-					return channel.embed('Please provide a text channel!');
+				const channel_ = guild.channels.cache.get(matchChannel[msg.content][0]);
+				if (!channel_ || !['text', 'news'].includes(channel_.type)) {
+					return channel.embed('Please provide a valid channel resolvable!');
 				}
 
 				if (upsertObj.ignoredChannels.includes(channel_.id)) {
@@ -210,25 +201,24 @@ class Setup extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				if (skip.test(msg.content)) {
+				if (skipRe.test(msg.content)) {
 					return collector.stop();
 				}
 
-				const yes = /^y(?:es)?$/i;
-				const no = /^no?$/i;
-
-				if ((upsertObj.starboardEnabled && yes.test(msg.content)) ||
-					(!upsertObj.starboardEnabled && no.test(msg.content))) {
-					upsertObj.starboardEnabled = false;
-				} else if ((upsertObj.starboardEnabled && no.test(msg.content)) ||
-					(!upsertObj.starboardEnabled && yes.test(msg.content))) {
-					upsertObj.starboardEnabled = true;
-				} else {
+				const yes = yesRe.test(msg.content);
+				const no = noRe.test(msg.content);
+				if (!yes && !no) {
 					return channel.embed('Please provide a yes/no answer!');
+				}
+
+				if ((upsertObj.starboardEnabled && yes) || (!upsertObj.starboardEnabled && no)) {
+					upsertObj.starboardEnabled = false;
+				} else if ((upsertObj.starboardEnabled && no) || (!upsertObj.starboardEnabled && yes)) {
+					upsertObj.starboardEnabled = true;
 				}
 
 				return collector.stop();
@@ -251,7 +241,7 @@ class Setup extends StarbotCommand {
 			const embed = client.embed(null, true)
 				.setTitle(`Setup wizard for ${guild.name}`)
 				.setDescription(stripIndents`
-					Please set the starboard channel.
+					Please set the starboard channel. It must be a non-news text channel.
 					${starboard ? `The current starboard is ${starboard.toString()}.` : 'It has not been set yet.'}
 					Type \`skip\` to skip this step.
 					Type \`cancel\` at any time to stop the process.
@@ -261,23 +251,17 @@ class Setup extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				if (skip.test(msg.content)) {
+				if (skipRe.test(msg.content)) {
 					return collector.stop();
 				}
 
-				const id = (msg.content.match(/^(?:<#(\d+)>|(\d+))$/) || [])[1];
-				const channel_ = guild.channels.cache.get(id);
-
-				if (!channel_) {
+				const channel_ = guild.channels.cache.get(matchChannel(msg.content)[0]);
+				if (!channel_ || !channel_.type !== 'text') {
 					return channel.embed('Sorry but the bot couldn\'t find that channel.');
-				}
-
-				if (!channel_.type !== 'text') {
-					return channel.embed('Please provide a non-news text channel!');
 				}
 
 				upsertObj.starboard_id = channel_.id;
@@ -309,11 +293,11 @@ class Setup extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				if (skip.test(msg.content)) {
+				if (skipRe.test(msg.content)) {
 					return collector.stop();
 				}
 

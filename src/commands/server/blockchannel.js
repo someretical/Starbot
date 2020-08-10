@@ -1,6 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchChannel } = require('../../util/Util.js');
 
 class BlockChannel extends StarbotCommand {
 	constructor(client) {
@@ -12,7 +13,7 @@ class BlockChannel extends StarbotCommand {
 			args: [{
 				name: '<channel>',
 				optional: false,
-				description: 'a channel mention or a valid ID',
+				description: 'an unblocked text channel mention or a valid ID',
 				example: client.owners[0],
 			}],
 			aliases: ['ignorechannel'],
@@ -27,36 +28,27 @@ class BlockChannel extends StarbotCommand {
 	async run(message) {
 		const { args, channel, guild } = message;
 		const { cache, models } = message.client.db;
+		const channel_ = guild.channels.cache.get(matchChannel(args[0])[0]);
 
-		if (!args[0]) {
-			return channel.embed('Please provide a channel resolvable!');
-		}
-
-		const id = (args[0].match(/^(?:<#(\d+)>|(\d+))$/) || [])[1];
-
-		if (!guild.channels.cache.has(id)) {
-			return channel.embed('Sorry but the bot couldn\'t find that channel.');
-		}
-
-		if (!['text', 'news'].includes(guild.channels.cache.get(id).type)) {
-			return channel.embed('Please provide a text channel!');
+		if (!channel_ || !['text', 'news'].includes(channel_.type)) {
+			return channel.embed('Please provide a valid channel resolvable!');
 		}
 
 		const upsertObj = guild.settings.toJSON();
 		upsertObj.ignoredChannels = JSON.parse(upsertObj.ignoredChannels);
 
-		if (upsertObj.ignoredChannels.includes(id)) {
+		if (upsertObj.ignoredChannels.includes(channel_.id)) {
 			return channel.embed('This channel is already ignored by the bot!');
 		}
 
-		upsertObj.ignoredChannels.push(id);
+		upsertObj.ignoredChannels.push(channel_.id);
 		upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
 
 		const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
 
 		cache.Guild.set(guild.id, updatedGuild);
 
-		return channel.embed(`The channel <#${id}> will now be ignored by the bot.`);
+		return channel.embed(`${channel_.toString()} will now be ignored by the bot.`);
 	}
 }
 

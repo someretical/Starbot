@@ -1,6 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchChannel } = require('../../util/Util.js');
 
 class UnblockChannel extends StarbotCommand {
 	constructor(client) {
@@ -12,7 +13,7 @@ class UnblockChannel extends StarbotCommand {
 			args: [{
 				name: '<channel>',
 				optional: false,
-				description: 'a channel mention or a valid ID',
+				description: 'a blocked text channel mention or a valid ID',
 				example: client.owners[0],
 			}],
 			aliases: ['unignorechannel'],
@@ -27,31 +28,26 @@ class UnblockChannel extends StarbotCommand {
 	async run(message) {
 		const { args, channel, guild } = message;
 		const { cache, models } = message.client.db;
+		const invalid = () => channel.embed('Please provide a channel which has been blocked!');
 
-		if (!args[0]) {
-			return channel.embed('Please provide a channel resolvable!');
-		}
+		if (!args[0]) return invalid();
 
-		const id = (args[0].match(/^(?:<#(\d+)>|(\d+))$/) || [])[1];
-		const unblockedChannel = guild.channels.cache.get(id);
-
-		if (!unblockedChannel) {
-			return channel.embed('Sorry but the bot couldn\'t find that channel.');
-		}
+		const id = matchChannel(args[0])[0];
+		if (!id) return invalid();
 
 		const upsertObj = guild.settings.toJSON();
 		upsertObj.ignoredChannels = JSON.parse(upsertObj.ignoredChannels);
 
-		if (upsertObj.ignoredChannels.includes(id)) {
-			upsertObj.ignoredChannels.splice(upsertObj.ignoredChannels.indexOf(id), 1);
-			upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
+		if (!upsertObj.ignoredChannels.includes(id)) return invalid();
 
-			const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
+		upsertObj.ignoredChannels.splice(upsertObj.ignoredChannels.indexOf(id), 1);
+		upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
 
-			cache.Guild.set(guild.id, updatedGuild);
-		}
+		const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
 
-		return channel.embed(`The bot will now be listening to ${unblockedChannel.toString()}.`);
+		cache.Guild.set(guild.id, updatedGuild);
+
+		return channel.embed(`The bot will now be listening to <#${id}>.`);
 	}
 }
 

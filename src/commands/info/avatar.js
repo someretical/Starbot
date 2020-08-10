@@ -1,6 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchUsers } = require('../../util/Util.js');
 
 class Avatar extends StarbotCommand {
 	constructor(client) {
@@ -27,7 +28,7 @@ class Avatar extends StarbotCommand {
 	async run(message) {
 		const { client, author, channel, args } = message;
 		const invalid = () => channel.embed('Please provide a valid user resolvable!');
-		const id = args[0] ? (args[0].match(/^(?:<@!?)?(\d+)>?$/) || [])[1] : author.id;
+		const id = !args[0] ? author.id : matchUsers(args[0])[0];
 
 		if (!id) return invalid();
 
