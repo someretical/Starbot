@@ -9,6 +9,26 @@ class Util {
 		return number === 1 ? '' : 's';
 	}
 
+	// Returns yes regex
+	static get yes() {
+		return /^y(?:es)?$/i;
+	}
+
+	// Returns no regex
+	static get no() {
+		return /^no?$/i;
+	}
+
+	// Returns cancel regex
+	static get cancel() {
+		return /^cancel$/i;
+	}
+
+	// Returns skip regex
+	static get skip() {
+		return /^skip$/i;
+	}
+
 	// Returns string with first character capitalised
 	static capitaliseFirstLetter(string) {
 		return string.charAt(0).toUpperCase() + string.slice(1);
