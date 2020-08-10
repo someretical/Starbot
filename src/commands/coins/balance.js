@@ -1,7 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { pluralize } = require('../../util/Util.js');
+const { pluralize, matchUsers } = require('../../util/Util.js');
 
 class Balance extends StarbotCommand {
 	constructor(client) {
@@ -27,13 +27,17 @@ class Balance extends StarbotCommand {
 
 	async run(message) {
 		const { client, author, channel, args } = message;
-		let user = !args[0] ? author : (args[0].match(/^(?:<@!?)?(\d+)>?$/) || [])[1];
+		const invalid = () => channel.send('Please provide a valid user resolvable!');
+		let user = null;
 
-		if (!user) {
-			return channel.embed('Please provide a valid user resolvable!');
+		if (!args[0]) return invalid();
+
+		try {
+			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
+		} catch (err) {
+			return invalid();
 		}
 
-		user = user.id ? user : client.users.cache.get(user);
 		await user.add();
 
 		const coins = user.data.coins;
