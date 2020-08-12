@@ -1,7 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchUser } = require('../../util/Util.js');
+const { matchUsers } = require('../../util/Util.js');
 
 class RepCount extends StarbotCommand {
 	constructor(client) {
@@ -33,7 +33,7 @@ class RepCount extends StarbotCommand {
 		if (!args[0]) return invalid();
 
 		try {
-			user = await client.users.fetch(!args[0] ? author.id : matchUser(args[0])[0]);
+			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
 		} catch (err) {
 			return invalid();
 		}

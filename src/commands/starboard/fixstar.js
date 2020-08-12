@@ -1,6 +1,8 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchMessageURL } = require('../../util/Util.js');
+const { invalid } = require('moment');
 
 class FixStar extends StarbotCommand {
 	constructor(client) {
@@ -32,21 +34,13 @@ class FixStar extends StarbotCommand {
 
 		if (!args[0]) return invalidURL();
 
-		try {
-			url = new URL(args[0]);
-		} catch (err) {
-			return invalidURL();
-		}
+		url = matchMessageURL(url);
+		if (!url) return invalid();
 
-		if (!url.pathname) return invalidURL();
-
-		const [, channel_id, message_id] = url.pathname.match(/\/channels\/\d+\/(\d+)\/(\d+)/) || [];
-		if (!channel_id || !message_id) return invalidURL();
-
-		const starChannel = guild.channels.cache.get(channel_id);
+		const starChannel = guild.channels.cache.get(url.channel_id);
 		if (!starChannel || starChannel.type !== 'text') return invalidURL();
 
-		const starMessage = await starChannel.messages.fetch(message_id);
+		const starMessage = await starChannel.messages.fetch(url.message_id);
 		if (!starMessage) return invalidURL();
 
 		await guild.starboard.fixStar(starMessage);

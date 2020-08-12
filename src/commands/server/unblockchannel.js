@@ -1,7 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchChannel } = require('../../util/Util.js');
+const { matchChannels } = require('../../util/Util.js');
 
 class UnblockChannel extends StarbotCommand {
 	constructor(client) {
@@ -32,7 +32,7 @@ class UnblockChannel extends StarbotCommand {
 
 		if (!args[0]) return invalid();
 
-		const id = matchChannel(args[0])[0];
+		const id = matchChannels(args[0])[0];
 		if (!id) return invalid();
 
 		const upsertObj = guild.settings.toJSON();

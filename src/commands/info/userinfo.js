@@ -1,7 +1,7 @@
 'use strict';
 
 const moment = require('moment');
-const { capitaliseFirstLetter: cfl, pluralize, matchUser } = require('../../util/Util.js');
+const { capitaliseFirstLetter: cfl, pluralize, matchUsers } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 class UserInfo extends StarbotCommand {
@@ -34,7 +34,7 @@ class UserInfo extends StarbotCommand {
 		if (!args[0]) return invalid();
 
 		try {
-			user = await client.users.fetch(!args[0] ? author.id : matchUser(args[0])[0]);
+			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
 
 			if (guild) {
 				member = await guild.members.fetch(user.id);
