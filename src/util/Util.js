@@ -110,6 +110,37 @@ class Util {
 		return paged;
 	}
 
+	// Returns message ID, obj with message and channel ID or null
+	static matchMessageURL(str, includeChannel = false) {
+		let id = null;
+
+		let url = null;
+		try {
+			url = new URL(str);
+		} catch (err) {
+			url = includeChannel ? null : (str.match(/^\d+$/) || [])[1];
+		}
+
+		if (!url) return null;
+
+		if (url.prototype instanceof URL) {
+			if (!url.pathname) return null;
+
+			const [, channel_id, message_id] = url.pathname.match(/\/channels\/\d+\/(\d+)\/(\d+)/) || [];
+			if (!message_id) return null;
+
+			if (includeChannel) {
+				return { message_id: message_id, channel_id: channel_id };
+			}
+
+			id = message_id;
+		} else {
+			id = url;
+		}
+
+		return id;
+	}
+
 	// All functions below return an array with valid ids
 	static matchUsers(str) {
 		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return [];
