@@ -86,6 +86,30 @@ class Util {
 		return perms;
 	}
 
+	static paginate(arr, maxPageLength = 1024, joinChar = '\n') {
+		const paged = [];
+		let temp = [];
+
+		while (arr.length) {
+			temp.push(arr.pop());
+
+			if (temp.join(joinChar).length > maxPageLength) {
+				if (temp.length === 1) {
+					paged.push(`${temp[0].slice(0, -maxPageLength - 3)}...`);
+					temp = [];
+				} else {
+					const pushIntoNext = temp.pop();
+
+					paged.push(temp.join(joinChar));
+
+					temp = [pushIntoNext];
+				}
+			}
+		}
+
+		return paged;
+	}
+
 	// All functions below return an array with valid ids
 	static matchUsers(str) {
 		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return [];
