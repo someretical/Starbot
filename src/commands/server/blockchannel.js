@@ -1,7 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchChannel } = require('../../util/Util.js');
+const { matchChannels } = require('../../util/Util.js');
 
 class BlockChannel extends StarbotCommand {
 	constructor(client) {
@@ -28,7 +28,7 @@ class BlockChannel extends StarbotCommand {
 	async run(message) {
 		const { args, channel, guild } = message;
 		const { cache, models } = message.client.db;
-		const channel_ = guild.channels.cache.get(matchChannel(args[0])[0]);
+		const channel_ = guild.channels.cache.get(matchChannels(args[0])[0]);
 
 		if (!channel_ || !['text', 'news'].includes(channel_.type)) {
 			return channel.embed('Please provide a valid channel resolvable!');

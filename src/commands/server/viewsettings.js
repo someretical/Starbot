@@ -23,13 +23,14 @@ class ViewSettings extends StarbotCommand {
 		const { client, channel } = message;
 		const { settings } = message.guild;
 
-		let displayedChannels = 'None';
 		const ignoredChannels = JSON.parse(settings.ignoredChannels);
+		let displayedChannels = (ignoredChannels.length < 11 ?
+			ignoredChannels :
+			ignoredChannels.slice(0, -ignoredChannels.length + 10))
+			.map(id => `<#${id}>`)
+			.join(', ');
 
-		if (ignoredChannels.length) {
-			displayedChannels = ignoredChannels.slice(0, 10).map(id => `<#${id}>`).join(', ')
-				.concat(ignoredChannels.length > 10 ? ` and ${ignoredChannels.length - 10} more` : '');
-		}
+		if (ignoredChannels.length > 10) displayedChannels += '...';
 
 		const embed = client.embed(null, true)
 			.setTitle(`Settings for ${message.guild.name}`)

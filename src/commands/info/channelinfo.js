@@ -1,7 +1,7 @@
 'use strict';
 
 const moment = require('moment');
-const { capitaliseFirstLetter: cfl, pluralize, matchChannel } = require('../../util/Util.js');
+const { capitaliseFirstLetter: cfl, pluralize, matchChannels } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 class ChannelInfo extends StarbotCommand {
@@ -28,7 +28,7 @@ class ChannelInfo extends StarbotCommand {
 
 	run(message) {
 		const { client, channel, guild, args } = message;
-		const infoChannel = guild.channels.cache.get(!args[0] ? channel.id : matchChannel(args[0])[0]);
+		const infoChannel = guild.channels.cache.get(!args[0] ? channel.id : matchChannels(args[0])[0]);
 
 		if (!infoChannel) {
 			return channel.embed('Please provide a valid channel resolvable!');

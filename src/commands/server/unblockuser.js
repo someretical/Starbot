@@ -2,6 +2,7 @@
 
 const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchUsers, yes: yesRe, no: noRe, cancel: cancelRe } = require('../../util/Util.js');
 
 class UnblockUser extends StarbotCommand {
 	constructor(client) {
@@ -23,11 +24,10 @@ class UnblockUser extends StarbotCommand {
 	run(message) {
 		const { client, author, channel, guild } = message;
 		const { cache } = message.client.db;
-		let user = null;
+		let ignore = null;
 
 		const filter = msg => msg.author.id === author.id;
 		const options = { time: 15000 };
-		const re = /^cancel$/i;
 
 		channel.awaiting.add(author.id);
 
@@ -72,18 +72,24 @@ class UnblockUser extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				const invalid = () => channel.embed('Please provide a valid user resolvable!');
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				const id = (msg.content.match(/^(<@!?\d+>|\d+)$/) || [])[1];
-				user = client.users.cache.get(id);
+				const id = matchUsers(msg.content)[0];
+				const globalUser = cache.GlobalIgnore.get(id);
+				ignore = guild.ignores.get(id + guild.id);
 
-				if (!user) {
-					return channel.embed('Please provide a valid user resolvable!');
+				if (!ignore && !globalUser) return invalid();
+				if (!ignore && globalUser && !client.isOwner(author.id)) {
+					return channel.embed('Only an owner can globally unblock this user!');
 				}
 
-				return collector.stop({ user_id: id });
+				ignore = !ignore && globalUser ? globalUser : ignore;
+				if (!ignore) return invalid();
+
+				return collector.stop();
 			});
 
 			collector.on('end', async (collected, reason) => {
@@ -92,19 +98,16 @@ class UnblockUser extends StarbotCommand {
 				if (reason === 'cancel') return cancel();
 				if (reason === 'time') return timeUp();
 
-				if (client.isOwner(author.id)) {
-					return askGlobal(reason);
-				} else {
-					return finalise(reason);
-				}
+				if (client.isOwner(author.id) && ignore.guild_id) return askGlobal();
+				return finalise();
 			});
 		}
 
-		async function askGlobal(obj) {
+		async function askGlobal() {
 			const embed = client.embed(null, true)
 				.setTitle(`Unblock a user on ${guild.name}`)
 				.setDescription(stripIndents`
-					Would you like to unblock <@!${obj.user_id}> globally?
+					Would you like to unblock <@!${ignore.user_id}> globally?
 					Type \`(y)es\` or \`(n)o\` to confirm.
 					Type \`cancel\` at any time to stop the process.
 				`);
@@ -113,20 +116,22 @@ class UnblockUser extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				const invalid = () => channel.send('Please provide a yes/no answer!');
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				const response = (msg.content.match(/^(y(?:es)?|no?)$/i) || [])[1];
+				const yes = yesRe.test(msg.content);
+				const no = noRe.test(msg.content);
+				if (!yes && !no) return invalid();
 
-				if (!response) {
-					return channel.embed(`Please provide a valid response!`);
+				if (no) {
+					return collector.stop('cancel');
 				}
 
-				return collector.stop({
-					user_id: obj.user_id,
-					global_: /^y(?:es)?$/i.test(response),
-				});
+				if (!yes) return invalid();
+
+				return collector.stop();
 			});
 
 			collector.on('end', async (collected, reason) => {
@@ -135,25 +140,34 @@ class UnblockUser extends StarbotCommand {
 				if (reason === 'cancel') return cancel();
 				if (reason === 'time') return timeUp();
 
-				return finalise(reason);
+				return finalise();
 			});
 		}
 
-		async function finalise({ user_id, global_ }) {
-			if (global_) {
-				const ignored = cache.GlobalIgnore.get(user_id);
-				if (ignored) await user.queue(() => ignored.destroy());
+		async function finalise() {
+			let userObj = null;
 
-				cache.GlobalIgnore.delete(user_id);
+			try {
+				userObj = await client.users.fetch(ignore.user_id);
+				// eslint-disable-next-line no-empty
+			} catch (err) {}
 
-				await channel.embed(`<@!${user_id}> has been globally unblocked.`);
+			if (ignore.guild_id) {
+				await guild.queue(() => ignore.destroy());
+
+				cache.Ignore.delete(ignore.user_id + guild.id);
+
+				await channel.embed(`${userObj ? userObj.toString() : `<@${ignore.user_id}>`} has been unblocked.`);
 			} else {
-				const ignored = guild.ignores.get(user_id + guild.id);
-				if (ignored) await guild.queue(() => ignored.destroy());
+				if (userObj) {
+					await userObj.queue(() => ignore.destroy());
+				} else {
+					await ignore.destroy();
+				}
 
-				cache.Ignore.delete(user_id + guild.id);
+				cache.GlobalIgnore.delete(ignore.user_id);
 
-				await channel.embed(`<@!${user_id}> has been unblocked.`);
+				await channel.embed(`${userObj ? userObj.toString() : `<@${ignore.user_id}>`} has been globally unblocked.`);
 			}
 
 			return channel.awaiting.delete(author.id);

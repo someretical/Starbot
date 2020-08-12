@@ -2,7 +2,7 @@
 
 const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchChannel, yes: yesRe, no: noRe, cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
+const { matchChannels, yes: yesRe, no: noRe, cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
 
 class Setup extends StarbotCommand {
 	constructor(client) {
@@ -163,7 +163,7 @@ class Setup extends StarbotCommand {
 					return collector.stop();
 				}
 
-				const channel_ = guild.channels.cache.get(matchChannel[msg.content][0]);
+				const channel_ = guild.channels.cache.get(matchChannels(msg.content)[0]);
 				if (!channel_ || !['text', 'news'].includes(channel_.type)) {
 					return channel.embed('Please provide a valid channel resolvable!');
 				}
@@ -259,7 +259,7 @@ class Setup extends StarbotCommand {
 					return collector.stop();
 				}
 
-				const channel_ = guild.channels.cache.get(matchChannel(msg.content)[0]);
+				const channel_ = guild.channels.cache.get(matchChannels(msg.content)[0]);
 				if (!channel_ || !channel_.type !== 'text') {
 					return channel.embed('Sorry but the bot couldn\'t find that channel.');
 				}
@@ -322,12 +322,13 @@ class Setup extends StarbotCommand {
 		}
 
 		async function finalise() {
-			let displayedChannels = 'None';
+			let displayedChannels = (upsertObj.ignoredChannels.length < 11 ?
+				upsertObj.ignoredChannels :
+				upsertObj.ignoredChannels.slice(0, -upsertObj.ignoredChannels.length + 10))
+				.map(id => `<#${id}>`)
+				.join(', ');
 
-			if (upsertObj.ignoredChannels.length) {
-				displayedChannels = upsertObj.ignoredChannels.slice(0, 10).map(id => `<#${id}>`).join(', ')
-					.concat(upsertObj.ignoredChannels.length > 10 ? ` and ${upsertObj.ignoredChannels.length - 10} more` : '');
-			}
+			if (upsertObj.ignoredChannels.length > 10) displayedChannels += '...';
 
 			upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
 			const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));

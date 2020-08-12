@@ -2,7 +2,7 @@
 
 const { oneLine } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchUser, yes: yesRe, no: noRe, cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
+const { matchUsers, yes: yesRe, no: noRe, cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
 
 class BlockUser extends StarbotCommand {
 	constructor(client) {
@@ -68,7 +68,7 @@ class BlockUser extends StarbotCommand {
 					return collector.stop('cancel');
 				}
 
-				const id = matchUser(msg.content)[0];
+				const id = matchUsers(msg.content)[0];
 
 				try {
 					user = await client.users.fetch(id);
@@ -172,7 +172,7 @@ class BlockUser extends StarbotCommand {
 					return channel.embed('Please provide a yes/no answer!');
 				}
 
-				if (yes && guild.ignores().has(obj.user_id + guild.id)) {
+				if (yes && guild.ignores.has(obj.user_id + guild.id)) {
 					return channel.embed(`<@!${obj.user_id}> is already blocked!`);
 				}
 
@@ -198,6 +198,7 @@ class BlockUser extends StarbotCommand {
 		}
 
 		async function finalise({ user_id, reason, global_ }) {
+			// ADD USER MODEL BEFORE BLOCKING
 			if (global_) {
 				const [record] = await user.queue(() => models.GlobalIgnore.upsert({
 					user_id: user_id,
