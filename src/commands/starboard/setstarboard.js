@@ -1,6 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchChannels } = require('../../util/Util.js');
 
 class SetStarboard extends StarbotCommand {
 	constructor(client) {
@@ -32,13 +33,10 @@ class SetStarboard extends StarbotCommand {
 			return channel.embed('Please provide a channel resolvable!');
 		}
 
-		const id = (args[0].match(/^(?:<#(\d+)>|(\d+))$/) || [])[1];
-
-		if (!guild.channels.cache.has(id)) {
+		const starboard = guild.channels.cache.get(matchChannels(args[0])[0]);
+		if (!starboard) {
 			return channel.embed('Sorry but the bot couldn\'t find that channel.');
 		}
-
-		const starboard = guild.channels.cache.get(id);
 
 		if (starboard.type !== 'text') {
 			return channel.embed('Please provide a **text** channel!');
@@ -51,7 +49,7 @@ class SetStarboard extends StarbotCommand {
 
 		cache.Guild.set(guild.id, updatedGuild);
 
-		return channel.embed(`The channel <#${id}> has been set as the starboard.`);
+		return channel.embed(`The channel ${starboard.toString()} has been set as the starboard.`);
 	}
 }
 

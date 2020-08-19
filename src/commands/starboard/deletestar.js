@@ -1,6 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchMessageURL } = require('../../util/Util.js');
 
 class DeleteStar extends StarbotCommand {
 	constructor(client) {
@@ -33,24 +34,8 @@ class DeleteStar extends StarbotCommand {
 
 		if (!args[0]) return invalidURL();
 
-		try {
-			url = new URL(args[0]);
-		} catch (err) {
-			url = (args[0].match(/^\d+$/) || [])[1];
-		}
-
+		url = matchMessageURL(url);
 		if (!url) return invalidURL();
-
-		if (url.prototype instanceof URL) {
-			if (!url.pathname) return invalidURL();
-
-			const [, , message_id] = url.pathname.match(/\/channels\/\d+\/(\d+)\/(\d+)/) || [];
-			if (!message_id) return invalidURL();
-
-			starMessage_id = message_id;
-		} else {
-			starMessage_id = args[0];
-		}
 
 		const star = guild.starboard.getStarModel(starMessage_id);
 		if (!star) {

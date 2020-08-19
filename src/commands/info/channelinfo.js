@@ -1,7 +1,7 @@
 'use strict';
 
 const moment = require('moment');
-const { capitaliseFirstLetter: cfl, pluralize } = require('../../util/Util.js');
+const { capitaliseFirstLetter: cfl, pluralize, matchChannels } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 class ChannelInfo extends StarbotCommand {
@@ -28,13 +28,13 @@ class ChannelInfo extends StarbotCommand {
 
 	run(message) {
 		const { client, channel, guild, args } = message;
-		const infoChannel = guild.channels.cache.get(args[0] ? (args[0].match(/^(?:<#)?(\d+)>?$/) || [])[1] : channel.id);
+		const infoChannel = guild.channels.cache.get(!args[0] ? channel.id : matchChannels(args[0])[0]);
 
 		if (!infoChannel) {
 			return channel.embed('Please provide a valid channel resolvable!');
 		}
 
-		const channelName = ['text', 'news'].includes(infoChannel.type) ? `#${infoChannel.name}` : infoChannel.name;
+		const channelName = `${['text', 'news'].includes(infoChannel.type) ? '#' : ''}${infoChannel.name}`;
 
 		const embed = client.embed()
 			.setAuthor(guild.name, guild.iconURL(), `https://discord.com/channels/${guild.id}/${infoChannel.id}`)
@@ -46,7 +46,7 @@ class ChannelInfo extends StarbotCommand {
 			.addField('Type', cfl(infoChannel.type), true)
 			.addField('Created at', moment(infoChannel.createdAt).format('dddd, MMMM Do YYYY, h:mm:ss a'), true);
 
-		if (infoChannel.type === 'text' || infoChannel.type === 'news') {
+		if (['text', 'news'].includes(infoChannel.type)) {
 			embed.addField('Category', infoChannel.parent ? infoChannel.parent.name : 'None', true)
 				.addField('Topic', infoChannel.topic || 'None', true)
 				.addField('Rate limit', moment.utc(infoChannel.rateLimitPerUser).format('H[h] mm[m] ss[s]'), true)

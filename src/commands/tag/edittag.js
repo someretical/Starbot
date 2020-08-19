@@ -1,6 +1,6 @@
 'use strict';
 
-const { oneLine, stripIndents } = require('common-tags');
+const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 class EditTag extends StarbotCommand {
@@ -39,7 +39,7 @@ class EditTag extends StarbotCommand {
 			const embed = client.embed(null, true)
 				.setDescription('The tag editing process has been successfully cancelled. All changes have been discarded.')
 				.setTitle(`Edit a tag for ${guild.name}`);
-				
+
 			channel.send(embed);
 
 			return channel.awaiting.delete(author.id);

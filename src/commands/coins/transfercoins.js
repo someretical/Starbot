@@ -1,7 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { pluralize } = require('../../util/Util.js');
+const { pluralize, matchUsers } = require('../../util/Util.js');
 
 class TransferCoins extends StarbotCommand {
 	constructor(client) {
@@ -33,12 +33,17 @@ class TransferCoins extends StarbotCommand {
 	async run(message) {
 		const { client, author, channel, args } = message;
 		const { models, cache } = message.client.db;
-		const user = client.users.cache.get(args[0] ? (args[0].match(/^(?:<@!?)?(\d+)>?$/) || [])[1] : null);
+		const invalid = () => channel.send('Please provide a valid user resolvable!');
 		const amount = Number(args[1]);
 		const authorData = author.data;
+		let user = null;
 
-		if (!user) {
-			return channel.embed('Please provide a valid user resolvable!');
+		if (!args[0]) return invalid();
+
+		try {
+			user = await client.users.fetch(matchUsers(args[0])[0]);
+		} catch (err) {
+			return invalid();
 		}
 
 		if (Number.isNaN(amount) || !Number.isInteger(amount) || amount < 1) {

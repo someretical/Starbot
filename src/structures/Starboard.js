@@ -182,7 +182,7 @@ class Starboard {
 
 		await this._updateStar(message, reactObj, star);
 	}
-	
+
 	// Returns null or error
 	async _updateStar(message, reactObj, star) {
 		const { starboardEnabled, reactionThreshold } = message.guild.settings;

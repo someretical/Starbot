@@ -1,6 +1,5 @@
 'use strict';
 
-const { MessageEmbed } = require('discord.js');
 const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { pluralize: s } = require('../../util/Util.js');
@@ -28,7 +27,7 @@ class TagInfo extends StarbotCommand {
 	}
 
 	run(message) {
-		const { channel, guild, args } = message;
+		const { client, channel, guild, args } = message;
 
 		if (!args[0]) {
 			return channel.embed('Please provide a tag name!');

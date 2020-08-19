@@ -62,48 +62,34 @@ module.exports = Discord.Structures.extend('Message', Message => {
 
 		// Returns parsed StarbotMessage
 		parse() {
-			let prefixPattern = null;
+			const prefix = this.guild && this.guild.settings.prefix ?
+				sanitise(this.guild.settings.prefix, true) :
+				this.client.prefix;
+			const prefixPattern = new RegExp(`^(<@!?${this.client.user.id}>\\s+|${prefix})(\\S+)`);
 
-			if (this.guild) {
-				const guildPrefix = sanitise(this.guild.settings.prefix);
-
-				prefixPattern = new RegExp(
-					`^(<@!?${this.client.user.id}>\\s+(?:${guildPrefix}\\s*)?|${guildPrefix}\\s*)([^\\s]+)`, 'i');
-			} else {
-				prefixPattern = new RegExp(`^(<@!?${this.client.user.id}>\\s+|${this.client.prefix})([^\\s]+)`, 'i');
-			}
-
-			if (prefixPattern.test(this.content)) {
-				const matched = this.content.match(prefixPattern);
-
+			const matched = this.content.match(prefixPattern);
+			if (matched) {
 				this.prefix = matched[1];
 				this.raw.command = matched[2];
 			}
 
-			if (this.guild) this.tag = this.guild.tags.get(this.guild.id + this.raw.command.toLowerCase());
+			if (this.guild) {
+				this.tag = this.guild.tags.get(this.guild.id + this.raw.command.toLowerCase());
+			}
 
 			let cleanedCmdName = this.raw.command.toLowerCase().trim();
-
 			if (this.client.aliases.has(cleanedCmdName)) {
 				cleanedCmdName = this.client.aliases.get(cleanedCmdName);
 			}
 
 			this.command = this.client.commands.find(cmd => cleanedCmdName === cmd.name);
-
 			if (this.command) {
 				this.raw.args = this.content.slice(this.prefix.length + this.raw.command.length).trim();
 
-				const argPattern = /\s*(?:("|')([^]*?)\1|(\S+))\s*/g;
-				let length = this.raw.args.length;
-				let match = [];
+				const re = /(?:(?=["'])(?:"[^"\\]*(?:\\[^][^"\\]*)*"|'[^'\\]*(?:\\[^][^'\\]*)*')|\S+)(?=\s+|$)/g;
+				const matches = this.raw.args.matchAll(re);
 
-				while (--length && (match = argPattern.exec(this.raw.args))) {
-					this.args.push(match[2] || match[3]);
-				}
-
-				if (match && argPattern.lastIndex < this.raw.args.length) {
-					this.args.push(this.raw.args.substr(argPattern.lastIndex).replace(/^("|')([^]*)\1$/g, '$2'));
-				}
+				this.args = Array.from(matches).map(arg => arg[0].replace(/^("|')([^]*)\1$/g, '$2'));
 			}
 
 			return this;
