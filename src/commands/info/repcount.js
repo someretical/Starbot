@@ -1,6 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchUsers } = require('../../util/Util.js');
 
 class RepCount extends StarbotCommand {
 	constructor(client) {
@@ -27,21 +28,21 @@ class RepCount extends StarbotCommand {
 	async run(message) {
 		const { client, author, channel, args } = message;
 		const invalid = () => channel.embed('Please provide a valid user resolvable!');
-		const id = args[0] ? (args[0].match(/^(?:<@!?)?(\d+)>?$/) || [])[1] : author.id;
-
-		if (!id) return invalid();
-
 		let user = null;
+
+		if (!args[0]) return invalid();
+
 		try {
-			user = await client.users.fetch(id);
+			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
 		} catch (err) {
 			return invalid();
 		}
+
 		if (!user) return invalid();
 
 		await user.add();
 
-		const text = id === author.id ? 'You have' : `${user.toString()} has`;
+		const text = user.id === author.id ? 'You have' : `${user.toString()} has`;
 		return channel.embed(`${text} ${user.data.reputation} reputation.`);
 	}
 }

@@ -2,6 +2,7 @@
 
 const { oneLine } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchUsers, yes: yesRe, no: noRe, cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
 
 class BlockUser extends StarbotCommand {
 	constructor(client) {
@@ -27,7 +28,6 @@ class BlockUser extends StarbotCommand {
 
 		const filter = msg => msg.author.id === author.id;
 		const options = { time: 15000 };
-		const re = /^cancel$/i;
 
 		channel.awaiting.add(author.id);
 
@@ -63,18 +63,23 @@ class BlockUser extends StarbotCommand {
 			const question = await channel.send(embed);
 			const collector = channel.createMessageCollector(filter, options);
 
-			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+			collector.on('collect', async msg => {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				const id = (msg.content.match(/^(<@!?\d+>|\d+)$/) || [])[1];
+				const id = matchUsers(msg.content)[0];
 
+				try {
+					user = await client.users.fetch(id);
+					// eslint-disable-next-line no-empty
+				} catch (err) {}
+
+				// Owners need to be able to globally block users later on
 				if (guild.ignores.has(id + guild.id) && !client.isOwner(author.id)) {
 					return channel.embed(`<@!${id}> is already blocked!`);
 				}
 
-				user = client.users.cache.get(id);
 				if (!user) {
 					return channel.embed('Sorry but the bot couldn\'t find that user.');
 				}
@@ -109,11 +114,11 @@ class BlockUser extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				if (/^skip$/i.test(msg.content)) {
+				if (skipRe.test(msg.content)) {
 					return collector.stop({
 						user_id: obj.user_id,
 						reason: 'None',
@@ -157,23 +162,21 @@ class BlockUser extends StarbotCommand {
 			const collector = channel.createMessageCollector(filter, options);
 
 			collector.on('collect', msg => {
-				if (re.test(msg.content)) {
+				if (cancelRe.test(msg.content)) {
 					return collector.stop('cancel');
 				}
 
-				const response = (msg.content.match(/^(y(?:es)?|no?)$/i) || [])[1];
-				const yes = /^y(?:es)?$/i.test(response);
-				const no = /^no?$/i.test(response);
-
-				if (!response) {
-					return channel.embed(`Please provide a valid response!`);
+				const yes = yesRe.test(msg.content);
+				const no = noRe.test(msg.content);
+				if (!yes && !no) {
+					return channel.embed('Please provide a yes/no answer!');
 				}
 
-				if (no && guild.ignores().has(obj.user_id + guild.id)) {
+				if (yes && guild.ignores.has(obj.user_id + guild.id)) {
 					return channel.embed(`<@!${obj.user_id}> is already blocked!`);
 				}
 
-				if (yes && cache.GlobalIgnore.has(obj.user_id)) {
+				if (no && cache.GlobalIgnore.has(obj.user_id)) {
 					return channel.embed(`<@!${obj.user_id}> is already globally blocked!`);
 				}
 
@@ -195,6 +198,7 @@ class BlockUser extends StarbotCommand {
 		}
 
 		async function finalise({ user_id, reason, global_ }) {
+			// ADD USER MODEL BEFORE BLOCKING
 			if (global_) {
 				const [record] = await user.queue(() => models.GlobalIgnore.upsert({
 					user_id: user_id,

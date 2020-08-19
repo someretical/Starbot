@@ -82,7 +82,7 @@ module.exports = async (client, message) => {
 		channel.error(err, 'runCommand');
 
 		Logger.err(err, 'Failed to run command');
-	} finally {
-		return null;
 	}
+
+	return null;
 };

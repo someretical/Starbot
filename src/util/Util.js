@@ -9,6 +9,26 @@ class Util {
 		return number === 1 ? '' : 's';
 	}
 
+	// Returns yes regex
+	static get yes() {
+		return /^y(?:es)?$/i;
+	}
+
+	// Returns no regex
+	static get no() {
+		return /^no?$/i;
+	}
+
+	// Returns cancel regex
+	static get cancel() {
+		return /^cancel$/i;
+	}
+
+	// Returns skip regex
+	static get skip() {
+		return /^skip$/i;
+	}
+
 	// Returns string with first character capitalised
 	static capitaliseFirstLetter(string) {
 		return string.charAt(0).toUpperCase() + string.slice(1);
@@ -66,9 +86,64 @@ class Util {
 		return perms;
 	}
 
+	static paginate(arr, maxPageLength = 1024, joinChar = '\n') {
+		const paged = [];
+		let temp = [];
+
+		while (arr.length) {
+			temp.push(arr.pop());
+
+			if (temp.join(joinChar).length > maxPageLength) {
+				if (temp.length === 1) {
+					paged.push(`${temp[0].slice(0, -maxPageLength - 3)}...`);
+					temp = [];
+				} else {
+					const pushIntoNext = temp.pop();
+
+					paged.push(temp.join(joinChar));
+
+					temp = [pushIntoNext];
+				}
+			}
+		}
+
+		return paged;
+	}
+
+	// Returns message ID, obj with message and channel ID or null
+	static matchMessageURL(str, includeChannel = false) {
+		let id = null;
+
+		let url = null;
+		try {
+			url = new URL(str);
+		} catch (err) {
+			url = includeChannel ? null : (str.match(/^\d+$/) || [])[1];
+		}
+
+		if (!url) return null;
+
+		if (url.prototype instanceof URL) {
+			if (!url.pathname) return null;
+
+			const [, channel_id, message_id] = url.pathname.match(/\/channels\/\d+\/(\d+)\/(\d+)/) || [];
+			if (!message_id) return null;
+
+			if (includeChannel) {
+				return { message_id: message_id, channel_id: channel_id };
+			}
+
+			id = message_id;
+		} else {
+			id = url;
+		}
+
+		return id;
+	}
+
 	// All functions below return an array with valid ids
 	static matchUsers(str) {
-		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return 'invalid';
+		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return [];
 
 		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<@!?)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
 
@@ -76,7 +151,7 @@ class Util {
 	}
 
 	static matchChannels(str) {
-		if (typeof str !== 'string' || /[^<>#\d\s]/.test(str)) return 'invalid';
+		if (typeof str !== 'string' || /[^<>#\d\s]/.test(str)) return [];
 
 		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<#)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
 
@@ -84,7 +159,7 @@ class Util {
 	}
 
 	static matchRoles(str) {
-		if (typeof str !== 'string' || /[^<>&\d\s]/.test(str)) return 'invalid';
+		if (typeof str !== 'string' || /[^<>&\d\s]/.test(str)) return [];
 
 		const matches = Array.from(str.matchAll(/(?<=(?:\s+|^)<&)\d+(?=>(?:\s+|$))|(?<=\s+|^)\d+(?=\s+|$)/g));
 
