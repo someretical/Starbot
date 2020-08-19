@@ -2,6 +2,7 @@
 
 const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchUsers } = require('../../util/Util.js');
 
 class Rep extends StarbotCommand {
 	constructor(client) {
@@ -28,15 +29,24 @@ class Rep extends StarbotCommand {
 	async run(message) {
 		const { client, channel, author, command, args } = message;
 		const { models, cache } = message.client.db;
-		const user = client.users.cache.get(args[0] ? (args[0].match(/^(?:<@!?)?(\d+)>?$/) || [])[1] : null);
 
 		const throttleDuration = command.checkThrottle(message, 'rep');
-
 		if (throttleDuration && !client.isOwner(author.id)) {
 			const timeLeft = moment(throttleDuration).fromNow(true);
 
 			return channel.embed(`You can give another reputation point in ${timeLeft}. Please be patient.`);
 		}
+
+		const id = matchUsers(args[0])[0];
+		let actualUser = null;
+		try {
+			actualUser = await client.users.fetch(id);
+		// eslint-disable-next-line no-empty
+		} catch (err) {}
+
+		if (actualUser) await actualUser.add();
+
+		const user = cache.User.get(id);
 
 		if (!user) {
 			return channel.embed('Please provide a valid user resolvable!');
@@ -50,7 +60,7 @@ class Rep extends StarbotCommand {
 		const [updatedUser] = await user.queue(() => models.User.upsert(upsertObj));
 		cache.User.set(user.id, updatedUser);
 
-		await channel.embed(`You have given ${user.toString()} one reputation.`);
+		await channel.embed(`You have given ${actualUser ? actualUser.toString() : `<@${user.iuser_id}>`} one reputation.`);
 		return command.globalThrottle(message, 'rep', 86400000);
 	}
 }
