@@ -24,6 +24,9 @@ class Starbot extends Discord.Client {
 		this.ready = false;
 	}
 
+	snowflake() {
+		return Discord.SnowflakeUtil.generate();
+	}
 
 	// Returns partially constructed embed
 	embed(text = null, fancy = false) {
