@@ -16,6 +16,7 @@ class TagInfo extends StarbotCommand {
 				optional: false,
 				description: 'the name of the tag',
 				example: 'hi',
+				code: true,
 			}],
 			aliases: ['tagstats', 'tagstatistics', 'taginformation'],
 			userPermissions: [],

@@ -16,6 +16,7 @@ class Eval extends StarbotCommand {
 				optional: true,
 				description: 'has to be code',
 				example: 'console.log(\'hello world!\');',
+				code: true,
 			}],
 			aliases: [],
 			userPermissions: [],

@@ -9,8 +9,14 @@ class EditTag extends StarbotCommand {
 			name: 'edittag',
 			description: 'edit an existing tag',
 			group: 'tag',
-			usage: '',
-			args: [],
+			usage: '<tag>',
+			args: [{
+				name: '<tag>',
+				optional: false,
+				description: 'the name of the tag',
+				example: 'hi',
+				code: true,
+			}],
 			aliases: ['editag'],
 			userPermissions: [],
 			clientPermissions: [],
@@ -21,10 +27,20 @@ class EditTag extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, author, channel, guild } = message;
+		const { client, author, channel, guild, args } = message;
 		const { commands, aliases } = message.client;
 		const { cache, models } = message.client.db;
-		let tag = null;
+		let tag = guild.tags.get(guild.id + args[0]);
+
+		if (!tag) {
+			return channel.embed('Please enter an existing tag name!');
+		}
+
+		if (tag.creator_id !== author.id) {
+			return channel.embed('Only the owner of a tag can edit it!');
+		}
+
+		tag = tag.toJSON();
 
 		const filter = msg => msg.author.id === author.id;
 		const options = { time: 15000 };
@@ -33,7 +49,7 @@ class EditTag extends StarbotCommand {
 
 		channel.awaiting.add(author.id);
 
-		return askName();
+		return askNewName();
 
 		function cancel() {
 			const embed = client.embed(null, true)
@@ -55,46 +71,7 @@ class EditTag extends StarbotCommand {
 			return channel.awaiting.delete(author.id);
 		}
 
-		async function askName() {
-			const embed = client.embed(null, true)
-				.setTitle(`Edit a tag for ${guild.name}`)
-				.setDescription(stripIndents`
-					Please enter the name of the tag you wish to edit.
-					Type \`cancel\` at any time to stop the process.
-				`);
-
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, options);
-
-			collector.on('collect', msg => {
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
-
-				tag = guild.tags.get(guild.id + msg.content.toLowerCase());
-
-				if (!tag) {
-					return channel.embed('Please enter an existing tag name!');
-				}
-
-				if (tag.creator_id !== author.id) {
-					return channel.embed('Only the owner of a tag can edit it!');
-				}
-
-				return collector.stop({ oldName: msg.content.toLowerCase() });
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				return askNewName(reason);
-			});
-		}
-
-		async function askNewName(obj) {
+		async function askNewName() {
 			const embed = client.embed(null, true)
 				.setTitle(`Edit a tag for ${guild.name}`)
 				.setDescription(stripIndents`
@@ -112,17 +89,14 @@ class EditTag extends StarbotCommand {
 				}
 
 				if (skip.test(msg.content)) {
-					return collector.stop({
-						oldName: obj.oldName,
-						newName: null,
-					});
+					return collector.stop();
 				}
 
-				if (commands.has(msg.content.toLowerCase()) || aliases.has(msg.content.toLowerCase())) {
+				if (commands.has(msg.content) || aliases.has(msg.content)) {
 					return channel.embed('A command or alias with this name already exists!');
 				}
 
-				if (guild.tags.has(guild.id + msg.content.toLowerCase())) {
+				if (guild.tags.has(guild.id + msg.content)) {
 					return channel.embed('A tag with this name already exists!');
 				}
 
@@ -134,10 +108,9 @@ class EditTag extends StarbotCommand {
 					return channel.embed('Sorry but tag names are capped at 32 characters.');
 				}
 
-				return collector.stop({
-					oldName: obj.oldName,
-					newName: msg.content.toLowerCase(),
-				});
+				tag.name = msg.content;
+
+				return collector.stop();
 			});
 
 			collector.on('end', async (collected, reason) => {
@@ -146,11 +119,11 @@ class EditTag extends StarbotCommand {
 				if (reason === 'cancel') return cancel();
 				if (reason === 'time') return timeUp();
 
-				return askNewResponse(reason);
+				return askNewResponse();
 			});
 		}
 
-		async function askNewResponse(obj) {
+		async function askNewResponse() {
 			const embed = client.embed(null, true)
 				.setTitle(`Edit a tag for ${guild.name}`)
 				.setDescription(stripIndents`
@@ -172,22 +145,16 @@ class EditTag extends StarbotCommand {
 				}
 
 				if (skip.test(msg.content)) {
-					return collector.stop({
-						oldName: obj.oldName,
-						newName: obj.newName,
-						newResponse: null,
-					});
+					return collector.stop();
 				}
 
 				if (msg.content.length > 1024) {
 					return channel.embed('Sorry but tag responses are capped at 1024 characters.');
 				}
 
-				return collector.stop({
-					oldName: obj.oldName,
-					newName: obj.newName,
-					newResponse: msg.content,
-				});
+				tag.newResponse = msg.content;
+
+				return collector.stop();
 			});
 
 			collector.on('end', async (collected, reason) => {
@@ -196,34 +163,20 @@ class EditTag extends StarbotCommand {
 				if (reason === 'cancel') return cancel();
 				if (reason === 'time') return timeUp();
 
-				return finalise(reason);
+				return finalise();
 			});
 		}
 
-		async function finalise({ oldName, newName, newResponse }) {
-			if ((tag.name === newName && tag.response === newResponse) || (!newName && !newResponse)) {
-				await channel.embed('The command has self-terminated due to no changes being made.');
-				return channel.awaiting.delete(author.id);
-			}
+		async function finalise() {
+			tag.lastContentUpdate = new Date();
+			const [updatedTag] = await guild.queue(() => models.Tag.upsert(tag));
 
-			const upsertObj = tag.toJSON();
-			upsertObj.lastContentUpdate = new Date();
-
-			if (newName) upsertObj.name = newName;
-			if (newResponse) upsertObj.response = newResponse;
-
-			const [updatedTag] = await guild.queue(() => models.Tag.upsert(upsertObj));
-
-			if (newName) cache.Tag.delete(guild.id + oldName);
-
-			cache.Tag.set(guild.id + (newName || oldName), updatedTag);
+			cache.Tag.delete(guild.id + tag.name);
+			cache.Tag.set(guild.id + updatedTag.name, updatedTag);
 
 			const embed = client.embed(null, true)
 				.setTitle(`Edit a tag for ${guild.name}`)
-				.setDescription(stripIndents`
-					The \`${oldName}\` tag has been successfully edited.
-					${newName ? `Its new name is \`${newName}\`` : ''}
-				`);
+				.setDescription(`The \`${updatedTag.name}\` tag has been successfully edited.`);
 
 			await channel.send(embed);
 

@@ -17,6 +17,7 @@ class Help extends StarbotCommand {
 				optional: true,
 				description: 'any command or alias name',
 				example: 'help',
+				code: true,
 			}],
 			aliases: [],
 			userPermissions: [],
@@ -96,7 +97,7 @@ class Help extends StarbotCommand {
 			embed.addField(argument.name, stripIndents`
 				• Optional: ${argument.optional ? 'yes' : 'no'}
 				• Description: ${argument.description.replace(/<prefix>/g, prefix)}
-				• Example: \`${argument.example}\`
+				• Example: ${argument.code ? `\`${argument.example}\`` : argument.example}
 			`, true);
 		}
 
