@@ -10,7 +10,7 @@ This file documents all of the procedures that should be used to in order to tes
 		<th>Expected Result</th>
 	</tr>
 	<tr>
-		<td>`/addcoins`</td>
+		<td><code>/addcoins</code></td>
 		<td>100 coins are added to the author's model and a GlobalThrottle entry is created</td>
 	</tr>
 <table>
@@ -22,15 +22,15 @@ This file documents all of the procedures that should be used to in order to tes
 		<th>Expected Result</th>
 	</tr>
 	<tr>
-		<td>`/balance`</td>
+		<td><code>/balance</code></td>
 		<td>shows author balance</td>
 	</tr>
 	<tr>
-		<td>`/balance <@123>`</td>
+		<td><code>/balance <@123></code></td>
 		<td>error</td>
 	</tr>
 	<tr>
-		<td>`/balance <@285571328155582465>`</td>
+		<td><code>/balance <@285571328155582465></code></td>
 		<td>shows user balance</td>
 	</tr>
 <table>
@@ -42,15 +42,15 @@ This file documents all of the procedures that should be used to in order to tes
 		<th>Expected Result</th>
 	</tr>
 	<tr>
-		<td>`/transfercoins`</td>
+		<td><code>/transfercoins</code></td>
 		<td>error</td>
 	</tr>
 	<tr>
-		<td>`/transfercoins <@123> 51.3`</td>
+		<td><code>/transfercoins <@123> 51.3</code></td>
 		<td>error</td>
 	</tr>
 	<tr>
-		<td>`/transfercoins <@285571328155582465> 50`</td>
+		<td><code>/transfercoins <@285571328155582465> 50</code></td>
 		<td>transaction completes</td>
 	</tr>
 <table>
