@@ -14,7 +14,7 @@ class SetStarboard extends StarbotCommand {
 				name: '<channel>',
 				optional: false,
 				description: 'a channel mention or a valid ID',
-				example: client.owners[0],
+				example: `<#${client.snowflake()}>`,
 			}],
 			aliases: ['setsb'],
 			userPermissions: ['MANAGE_GUILD'],
@@ -44,7 +44,7 @@ class SetStarboard extends StarbotCommand {
 
 		const [updatedGuild] = await guild.queue(() => models.Guild.upsert({
 			id: guild.id,
-			starboard_id: id,
+			starboard_id: starboard.id,
 		}));
 
 		cache.Guild.set(guild.id, updatedGuild);

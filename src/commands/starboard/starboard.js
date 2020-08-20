@@ -15,6 +15,7 @@ class Starboard extends StarbotCommand {
 				optional: false,
 				description: 'a literal boolean, `enable` or `disable`',
 				example: 'enable',
+				code: true,
 			}],
 			aliases: ['sb'],
 			userPermissions: ['MANAGE_GUILD'],
