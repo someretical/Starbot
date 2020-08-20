@@ -16,6 +16,7 @@ class FixStar extends StarbotCommand {
 				optional: false,
 				description: 'link to a message',
 				example: 'https://discord.com/channels/361736003859513344/732842050516680705/732842074612826112',
+				code: true,
 			}],
 			aliases: ['updatestar'],
 			userPermissions: [],

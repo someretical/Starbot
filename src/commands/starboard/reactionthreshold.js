@@ -14,6 +14,7 @@ class ReactionThreshold extends StarbotCommand {
 				optional: false,
 				description: 'a positive number',
 				example: '2',
+				code: true,
 			}],
 			aliases: ['reactionlimit'],
 			userPermissions: ['MANAGE_GUILD'],
@@ -32,9 +33,9 @@ class ReactionThreshold extends StarbotCommand {
 			return channel.embed('Please provide an integer!');
 		}
 
-		const limit = Number(args[0]);
+		const limit = parseInt(args[0]);
 
-		if (Number.isNaN(limit) || !Number.isInteger(limit) || limit < 1) {
+		if (Number.isNaN(limit) || !Number.isSafeInteger(limit) || limit < 1) {
 			return channel.embed('Please provide a valid integer!');
 		}
 

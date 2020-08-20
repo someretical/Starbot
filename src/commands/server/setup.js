@@ -301,8 +301,8 @@ class Setup extends StarbotCommand {
 					return collector.stop();
 				}
 
-				const limit = Number(msg.content);
-				if (Number.isNaN(limit) || !Number.isInteger(limit) || limit < 1) {
+				const limit = parseInt(msg.content);
+				if (Number.isNaN(limit) || !Number.isSafeInteger(limit) || limit < 1) {
 					return channel.embed('Please provide a valid integer!');
 				}
 

@@ -14,12 +14,14 @@ class TransferCoins extends StarbotCommand {
 				name: '<user>',
 				optional: false,
 				description: 'a user mention or ID',
-				example: `<@!${client.owners[0]}>`,
+				example: `<@${client.owners[0]}>`,
+				code: false,
 			}, {
 				name: '<amount>',
 				optional: false,
 				description: 'amount of coins to transfer',
 				example: '420',
+				code: true,
 			}],
 			aliases: ['movecoins', 'laundercoins'],
 			userPermissions: [],
@@ -34,7 +36,7 @@ class TransferCoins extends StarbotCommand {
 		const { client, author, channel, args } = message;
 		const { models, cache } = message.client.db;
 		const invalid = () => channel.send('Please provide a valid user resolvable!');
-		const amount = Number(args[1]);
+		const amount = parseInt(args[0]);
 		const authorData = author.data;
 		let user = null;
 
@@ -46,7 +48,7 @@ class TransferCoins extends StarbotCommand {
 			return invalid();
 		}
 
-		if (Number.isNaN(amount) || !Number.isInteger(amount) || amount < 1) {
+		if (Number.isNaN(amount) || !Number.isSafeInteger(amount) || amount < 1) {
 			return channel.embed('Please provide a valid number of coins to transfer!');
 		}
 

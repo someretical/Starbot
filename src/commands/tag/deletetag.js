@@ -14,6 +14,7 @@ class DeleteTag extends StarbotCommand {
 				optional: false,
 				description: 'the name of the tag',
 				example: 'hi',
+				code: true,
 			}],
 			aliases: ['removetag'],
 			userPermissions: [],
