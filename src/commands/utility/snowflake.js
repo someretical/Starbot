@@ -27,9 +27,9 @@ class Snowflake extends StarbotCommand {
 
 	run(message) {
 		const { channel, args } = message;
-		const now = !args[0] ? Date.now() : new Date(Number(args[0])).getTime();
+		const now = !args[0] ? Date.now() : new Date(parseInt(args[0])).getTime();
 
-		if (Number.isNaN(now) || now < 1420070400000) {
+		if (Number.isNaN(now) || !Number.isSafeInteger(now) || now < 1420070400000) {
 			return channel.embed('Please provide a valid timestamp!');
 		}
 
