@@ -1,6 +1,5 @@
 'use strict';
 
-const { SnowflakeUtil } = require('discord.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 class Snowflake extends StarbotCommand {
@@ -26,14 +25,14 @@ class Snowflake extends StarbotCommand {
 	}
 
 	run(message) {
-		const { channel, args } = message;
+		const { client, channel, args } = message;
 		const now = !args[0] ? Date.now() : new Date(parseInt(args[0])).getTime();
 
 		if (Number.isNaN(now) || !Number.isSafeInteger(now) || now < 1420070400000) {
 			return channel.embed('Please provide a valid timestamp!');
 		}
 
-		return channel.embed(SnowflakeUtil.generate(now));
+		return channel.embed(client.snowflake(now));
 	}
 }
 
