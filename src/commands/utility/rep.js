@@ -16,6 +16,7 @@ class Rep extends StarbotCommand {
 				optional: false,
 				description: 'a user mention or ID',
 				example: `<@!${client.owners[0]}>`,
+				code: false,
 			}],
 			aliases: ['addrep'],
 			userPermissions: [],

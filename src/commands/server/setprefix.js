@@ -18,6 +18,7 @@ class SetPrefix extends StarbotCommand {
 					run \`<prefix>help arguments\` for more information
 				`,
 				example: 's!',
+				code: true,
 			}],
 			aliases: [],
 			userPermissions: ['MANAGE_GUILD'],
