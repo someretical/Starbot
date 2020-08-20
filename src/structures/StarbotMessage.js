@@ -89,7 +89,9 @@ module.exports = Discord.Structures.extend('Message', Message => {
 				const re = /(?:(?=["'])(?:"[^"\\]*(?:\\[^][^"\\]*)*"|'[^'\\]*(?:\\[^][^'\\]*)*')|\S+)(?=\s+|$)/g;
 				const matches = this.raw.args.matchAll(re);
 
-				this.args = Array.from(matches).map(arg => arg[0].replace(/^("|')([^]*)\1$/g, '$2'));
+				this.args = Array.from(matches).map(arg => arg[0].replace(/^("|')([^]*)\1$/g, '$2')
+					.replace(/<single_quote>/gi, '\'')
+					.replace(/<double_quote>/gi, '"'));
 			}
 
 			return this;
