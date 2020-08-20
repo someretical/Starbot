@@ -1,8 +1,7 @@
 'use strict';
 
-const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchUsers, yes: yesRe, no: noRe, cancel: cancelRe } = require('../../util/Util.js');
+const { matchUsers } = require('../../util/Util.js');
 
 class UnblockUser extends StarbotCommand {
 	constructor(client) {
@@ -10,8 +9,14 @@ class UnblockUser extends StarbotCommand {
 			name: 'unblockuser',
 			description: 'allow someone to use the bot again',
 			group: 'server',
-			usage: '',
-			args: [],
+			usage: '<user>',
+			args: [{
+				name: '<user>',
+				optional: false,
+				description: 'a blocked user mention or a valid ID',
+				example: `<@${client.owners[0]}>`,
+				code: false,
+			}],
 			aliases: ['whitelist', 'allowlist'],
 			userPermissions: ['MANAGE_GUILD'],
 			clientPermissions: [],
@@ -21,156 +26,43 @@ class UnblockUser extends StarbotCommand {
 		});
 	}
 
-	run(message) {
-		const { client, author, channel, guild } = message;
+	async run(message) {
+		const { client, author, channel, guild, args } = message;
 		const { cache } = message.client.db;
-		let ignore = null;
+		const owner = client.isOwner(author.id);
+		const user_id = matchUsers(args[0])[0];
+		const ignored = guild.ignores.get(user_id + guild.id);
+		let reason = null, global_ = false;
 
-		const filter = msg => msg.author.id === author.id;
-		const options = { time: 15000 };
-
-		channel.awaiting.add(author.id);
-
-		return askUser();
-
-		function cancel() {
-			const embed = client.embed(null, true)
-				.setTitle(`Unblock a user on ${guild.name}`)
-				.setDescription(stripIndents`
-					The unignore process has been successfully cancelled.
-					All changes have been discarded.
-				`);
-
-			channel.send(embed);
-
-			return channel.awaiting.delete(author.id);
+		if (!ignored) {
+			channel.embed(`<@${user_id}> is not blocked!`);
+			return;
 		}
 
-		function timeUp() {
-			const embed = client.embed(null, true)
-				.setTitle(`Unblock a user on ${guild.name}`)
-				.setDescription(stripIndents`
-					Sorry but the message collector timed out.
-					Please run the command again.
-				`);
-
-			channel.send(embed);
-
-			return channel.awaiting.delete(author.id);
+		if (/^-(?:g|-global)$/i.test(args[1]) && owner) {
+			reason = 'None';
+			global_ = true;
+		} else {
+			reason = args[1] || 'None';
 		}
 
-		async function askUser() {
-			const embed = client.embed(null, true)
-				.setTitle(`Unblock a user on ${guild.name}`)
-				.setDescription(stripIndents`
-					Please mention the user that you wish to unblock.
-					Alternatively, you can enter their id.
-					Type \`cancel\` at any time to stop the process.
-				`);
-
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, options);
-
-			collector.on('collect', msg => {
-				const invalid = () => channel.embed('Please provide a valid user resolvable!');
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
-
-				const id = matchUsers(msg.content)[0];
-				const globalUser = cache.GlobalIgnore.get(id);
-				ignore = guild.ignores.get(id + guild.id);
-
-				if (!ignore && !globalUser) return invalid();
-				if (!ignore && globalUser && !client.isOwner(author.id)) {
-					return channel.embed('Only an owner can globally unblock this user!');
-				}
-
-				ignore = !ignore && globalUser ? globalUser : ignore;
-				if (!ignore) return invalid();
-
-				return collector.stop();
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				if (client.isOwner(author.id) && ignore.guild_id) return askGlobal();
-				return finalise();
-			});
+		if (reason.length > 256) {
+			channel.embed('Please make sure your reason is below 256 characters long.');
+			return;
 		}
 
-		async function askGlobal() {
-			const embed = client.embed(null, true)
-				.setTitle(`Unblock a user on ${guild.name}`)
-				.setDescription(stripIndents`
-					Would you like to unblock <@!${ignore.user_id}> globally?
-					Type \`(y)es\` or \`(n)o\` to confirm.
-					Type \`cancel\` at any time to stop the process.
-				`);
+		if (global_) {
+			await ignored.destroy();
 
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, options);
+			cache.GlobalIgnore.delete(user_id);
 
-			collector.on('collect', msg => {
-				const invalid = () => channel.send('Please provide a yes/no answer!');
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
+			await channel.embed(`<@${user_id}> has been globally unblocked. Reason: ${reason}`);
+		} else {
+			await guild.queue(ignored.destroy);
 
-				const yes = yesRe.test(msg.content);
-				const no = noRe.test(msg.content);
-				if (!yes && !no) return invalid();
+			cache.Ignore.delete(user_id + guild.id);
 
-				if (no) {
-					return collector.stop('cancel');
-				}
-
-				if (!yes) return invalid();
-
-				return collector.stop();
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				return finalise();
-			});
-		}
-
-		async function finalise() {
-			let userObj = null;
-
-			try {
-				userObj = await client.users.fetch(ignore.user_id);
-				// eslint-disable-next-line no-empty
-			} catch (err) {}
-
-			if (ignore.guild_id) {
-				await guild.queue(() => ignore.destroy());
-
-				cache.Ignore.delete(ignore.user_id + guild.id);
-
-				await channel.embed(`${userObj ? userObj.toString() : `<@${ignore.user_id}>`} has been unblocked.`);
-			} else {
-				if (userObj) {
-					await userObj.queue(() => ignore.destroy());
-				} else {
-					await ignore.destroy();
-				}
-
-				cache.GlobalIgnore.delete(ignore.user_id);
-
-				await channel.embed(`${userObj ? userObj.toString() : `<@${ignore.user_id}>`} has been globally unblocked.`);
-			}
-
-			return channel.awaiting.delete(author.id);
+			await channel.embed(`<@${user_id}> has been unblocked. Reason: ${reason}`);
 		}
 	}
 }
