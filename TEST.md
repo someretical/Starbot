@@ -4,30 +4,56 @@ This file documents all of the procedures that should be used to in order to tes
 ## Commands
 ### Coins
 #### Addcoins
-- Expected behaviour: 100 coins are added to the author's model and a GlobalThrottle entry is created
+<table>
+	<tr>
+		<th>Test</th>
+		<th>Expected Result</th>
+	</tr>
+	<tr>
+		<td>`/addcoins`</td>
+		<td>100 coins are added to the author's model and a GlobalThrottle entry is created</td>
+	</tr>
+<table>
 
 #### Balance
-- Test command: `/balance abc123`
-- Expected behaviour: error
-
-- Test command: `/balance <@123>`
-- Expected behaviour: error
-
-- Test command: `/balance <@285571328155582465>`
-- Expected behaviour: shows balance
+<table>
+	<tr>
+		<th>Test</th>
+		<th>Expected Result</th>
+	</tr>
+	<tr>
+		<td>`/balance`</td>
+		<td>shows author balance</td>
+	</tr>
+	<tr>
+		<td>`/balance <@123>`</td>
+		<td>error</td>
+	</tr>
+	<tr>
+		<td>`/balance <@285571328155582465>`</td>
+		<td>shows user balance</td>
+	</tr>
+<table>
 
 #### TransferCoins
-- Test command: `/transfercoins abc123`
-- Expected behaviour: error
-
-- Test command: `/transfercoins abc123 abc123`
-- Expected behaviour: error
-
-- Test command: `/transfercoins <@285571328155582465> 51.3`
-- Expected behaviour: error
-
-- Test command: `/transfercoins <@285571328155582465> 50`
-- Expected behaviour: transaction completes
+<table>
+	<tr>
+		<th>Test</th>
+		<th>Expected Result</th>
+	</tr>
+	<tr>
+		<td>`/transfercoins`</td>
+		<td>error</td>
+	</tr>
+	<tr>
+		<td>`/transfercoins <@123> 51.3`</td>
+		<td>error</td>
+	</tr>
+	<tr>
+		<td>`/transfercoins <@285571328155582465> 50`</td>
+		<td>transaction completes</td>
+	</tr>
+<table>
 
 ### Info
 #### Avatar
