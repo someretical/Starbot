@@ -3,7 +3,7 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { pluralize, matchUsers } = require('../../util/Util.js');
 
-class Balance extends StarbotCommand {
+module.exports = class Balance extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'balance',
@@ -27,12 +27,12 @@ class Balance extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, author, channel, args } = message;
+		const { client, args, author, channel } = message;
 		const invalid = () => channel.send('Please provide a valid user resolvable!');
-		let user = null;
 
 		if (!args[0]) return invalid();
 
+		let user;
 		try {
 			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
 		} catch (err) {
@@ -46,6 +46,4 @@ class Balance extends StarbotCommand {
 
 		return channel.embed(`${username} ${coins} coin${pluralize(coins)}.`);
 	}
-}
-
-module.exports = Balance;
+};

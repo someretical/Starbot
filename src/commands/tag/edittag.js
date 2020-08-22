@@ -2,8 +2,9 @@
 
 const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
 
-class EditTag extends StarbotCommand {
+module.exports = class EditTag extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'edittag',
@@ -27,11 +28,9 @@ class EditTag extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, author, channel, guild, args } = message;
-		const { commands, aliases } = message.client;
-		const { cache, models } = message.client.db;
-		let tag = guild.tags.get(guild.id + args[0]);
+		const { client, args, author, channel, guild } = message;
 
+		let tag = guild.tags.get(guild.id + args[0]);
 		if (!tag) {
 			return channel.embed('Please enter an existing tag name!');
 		}
@@ -44,8 +43,6 @@ class EditTag extends StarbotCommand {
 
 		const filter = msg => msg.author.id === author.id;
 		const options = { time: 15000 };
-		const cancelRe = /^cancel$/i;
-		const skip = /^skip$/i;
 
 		channel.awaiting.add(author.id);
 
@@ -88,11 +85,11 @@ class EditTag extends StarbotCommand {
 					return collector.stop('cancel');
 				}
 
-				if (skip.test(msg.content)) {
+				if (skipRe.test(msg.content)) {
 					return collector.stop();
 				}
 
-				if (commands.has(msg.content) || aliases.has(msg.content)) {
+				if (client.commands.has(msg.content) || client.aliases.has(msg.content)) {
 					return channel.embed('A command or alias with this name already exists!');
 				}
 
@@ -144,7 +141,7 @@ class EditTag extends StarbotCommand {
 					return collector.stop('cancel');
 				}
 
-				if (skip.test(msg.content)) {
+				if (skipRe.test(msg.content)) {
 					return collector.stop();
 				}
 
@@ -169,10 +166,10 @@ class EditTag extends StarbotCommand {
 
 		async function finalise() {
 			tag.lastContentUpdate = new Date();
-			const [updatedTag] = await guild.queue(() => models.Tag.upsert(tag));
+			const [updatedTag] = await guild.queue(() => client.db.models.Tag.upsert(tag));
 
-			cache.Tag.delete(guild.id + tag.name);
-			cache.Tag.set(guild.id + updatedTag.name, updatedTag);
+			client.db.cache.Tag.delete(guild.id + tag.name);
+			client.db.cache.Tag.set(guild.id + updatedTag.name, updatedTag);
 
 			const embed = client.embed(null, true)
 				.setTitle(`Edit a tag for ${guild.name}`)
@@ -183,6 +180,4 @@ class EditTag extends StarbotCommand {
 			return channel.awaiting.delete(author.id);
 		}
 	}
-}
-
-module.exports = EditTag;
+};

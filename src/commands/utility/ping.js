@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class Ping extends StarbotCommand {
+module.exports = class Ping extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'ping',
@@ -28,6 +28,4 @@ class Ping extends StarbotCommand {
 
 		sent.edit(client.embed(`Pong! Heartbeat: ${heartbeat}ms, Round trip: ${roundTrip}ms`));
 	}
-}
-
-module.exports = Ping;
+};

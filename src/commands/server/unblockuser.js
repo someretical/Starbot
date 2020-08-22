@@ -3,7 +3,7 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchUsers } = require('../../util/Util.js');
 
-class UnblockUser extends StarbotCommand {
+module.exports = class UnblockUser extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'unblockuser',
@@ -27,12 +27,11 @@ class UnblockUser extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, author, channel, guild, args } = message;
-		const { cache } = message.client.db;
+		const { client, args, author, channel, guild } = message;
 		const owner = client.isOwner(author.id);
 		const user_id = matchUsers(args[0])[0];
 		const ignored = guild.ignores.get(user_id + guild.id);
-		let reason = null, global_ = false;
+		let reason, global_ = false;
 
 		if (!ignored) {
 			channel.embed(`<@${user_id}> is not blocked!`);
@@ -54,17 +53,15 @@ class UnblockUser extends StarbotCommand {
 		if (global_) {
 			await ignored.destroy();
 
-			cache.GlobalIgnore.delete(user_id);
+			client.db.cache.GlobalIgnore.delete(user_id);
 
 			await channel.embed(`<@${user_id}> has been globally unblocked. Reason: ${reason}`);
 		} else {
 			await guild.queue(ignored.destroy);
 
-			cache.Ignore.delete(user_id + guild.id);
+			client.db.cache.Ignore.delete(user_id + guild.id);
 
 			await channel.embed(`<@${user_id}> has been unblocked. Reason: ${reason}`);
 		}
 	}
-}
-
-module.exports = UnblockUser;
+};

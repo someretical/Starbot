@@ -3,7 +3,7 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchUsers } = require('../../util/Util.js');
 
-class RepCount extends StarbotCommand {
+module.exports = class RepCount extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'repcount',
@@ -27,25 +27,21 @@ class RepCount extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, author, channel, args } = message;
+		const { client, args, author, channel } = message;
 		const invalid = () => channel.embed('Please provide a valid user resolvable!');
-		let user = null;
 
 		if (!args[0]) return invalid();
 
+		let user;
 		try {
 			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
 		} catch (err) {
 			return invalid();
 		}
 
-		if (!user) return invalid();
-
 		await user.add();
 
 		const text = user.id === author.id ? 'You have' : `${user.toString()} has`;
 		return channel.embed(`${text} ${user.data.reputation} reputation.`);
 	}
-}
-
-module.exports = RepCount;
+};

@@ -4,7 +4,7 @@ const { inspect } = require('util');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { sanitise } = require('../../util/Util.js');
 
-class Eval extends StarbotCommand {
+module.exports = class Eval extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'eval',
@@ -28,7 +28,7 @@ class Eval extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { raw, channel } = message;
+		const { channel, raw } = message;
 
 		try {
 			const evaluated = await eval(raw.args);
@@ -47,6 +47,4 @@ class Eval extends StarbotCommand {
 			channel.send(`\`\`\`js\n${sanitise(err.stack)}\n\`\`\``);
 		}
 	}
-}
-
-module.exports = Eval;
+};

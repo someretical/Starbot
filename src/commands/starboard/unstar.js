@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class UnStar extends StarbotCommand {
+module.exports = class UnStar extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'unstar',
@@ -26,13 +26,12 @@ class UnStar extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { author, channel, guild, args } = message;
-		let url = null;
-
+		const { args, author, channel, guild } = message;
 		const invalidURL = () => channel.embed('Please provide a valid message URL!');
 
 		if (!args[0]) return invalidURL();
 
+		let url;
 		try {
 			url = new URL(args[0]);
 		} catch (err) {
@@ -80,6 +79,4 @@ class UnStar extends StarbotCommand {
 
 		return channel.embed(`You have removed your star from ${starMessage.author.toString()}'s message.`);
 	}
-}
-
-module.exports = UnStar;
+};
