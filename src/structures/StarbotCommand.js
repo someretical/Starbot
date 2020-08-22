@@ -9,6 +9,7 @@ const StarbotQueue = require('./StarbotQueue.js');
 class StarbotCommand {
 	constructor(client, info) {
 		this.client = client;
+		this.path = path.resolve(`./src/commands/${this.group}/${this.name}.js`);
 		this.name = info.name;
 		this.description = info.description;
 		this.group = info.group;
@@ -22,11 +23,8 @@ class StarbotCommand {
 		this.throttleDuration = info.throttle;
 		this.queues = new Collection();
 		this.throttles = new Collection();
-
-		Object.defineProperty(this, 'path', { value: path.resolve(`./src/commands/${this.group}/${this.name}.js`) });
 	}
 
-	// Returns null or error
 	reload() {
 		try {
 			delete require.cache[this.path];
@@ -39,24 +37,16 @@ class StarbotCommand {
 		}
 	}
 
-	// Returns null or error
 	unload() {
-		try {
-			if (require.cache[this.path]) {
-				delete require.cache[this.path];
+		if (!require.cache[this.path]) return;
 
-				this.client.commands.delete(this.name);
+		delete require.cache[this.path];
 
-				return Logger.info(`Unloaded ${this.name} command`);
-			} else {
-				throw new Error(`Unable to unload command ${this.name}`);
-			}
-		} catch (err) {
-			return err;
-		}
+		this.client.commands.delete(this.name);
+
+		Logger.info(`Unloaded ${this.name} command`);
 	}
 
-	// Returns promise
 	queue(key, promiseFunction) {
 		let queue = this.queues.get(key);
 
@@ -68,9 +58,7 @@ class StarbotCommand {
 
 		return new Promise((resolve, reject) => {
 			queue.add(() => promiseFunction().then(value => {
-				if (!queue.length) {
-					this.queues.delete(key);
-				}
+				if (!queue.length) this.queues.delete(key);
 
 				resolve(value);
 			}).catch(err => {
@@ -81,15 +69,11 @@ class StarbotCommand {
 		});
 	}
 
-	// Returns number of milliseconds or null
 	checkThrottle(message, command = '') {
-		const { cache } = message.client.db;
-		const { author } = message;
-		const guild = message.guild;
+		const { client, author, guild } = message;
 
 		if (guild && command) {
-			const throttle = cache.GlobalThrottle.get(author.id + command);
-
+			const throttle = client.db.cache.GlobalThrottle.get(author.id + command);
 			if (throttle) {
 				const now = Date.now();
 				const endsAt = moment(throttle.endsAt).valueOf();
@@ -100,49 +84,37 @@ class StarbotCommand {
 					this.queue(author.id + command, () => throttle.destroy());
 				}
 			}
-
-			return null;
 		}
 
 		const throttle = this.throttles.get(guild ? author.id + guild.id + this.name : author.id + this.name);
-
 		if (throttle) return throttle.endsAt;
 
-		return null;
+		return undefined;
 	}
 
-	// Returns null or error
 	async globalThrottle(message, command, duration) {
-		const { cache, models } = message.client.db;
+		const { client, author } = message;
 		const now = Date.now();
+		const [record] = await this.queue(author.id + command, () => client.db.models.GlobalThrottle.upsert({
+			user_id: author.id,
+			command: command,
+			endsAt: now + duration,
+		}));
 
-		try {
-			const [record] = await this.queue(message.author.id + command, () => models.GlobalThrottle.upsert({
-				user_id: message.author.id,
-				command: command,
-				endsAt: now + duration,
-			}));
-
-			cache.GlobalThrottle.set(message.author.id + command, record);
-		} catch (err) {
-			return err;
-		}
-		return null;
+		client.db.cache.GlobalThrottle.set(author.id + command, record);
 	}
 
-	// Returns null
 	throttle(message) {
-		if (this.client.owners.includes(message.author.id) || this.throttleDuration === 0) return;
+		const { client, author, guild } = message;
+		if (client.owners.includes(author.id) || this.throttleDuration === 0) return;
 
-		const key = message.guild ? message.author.id + message.guild.id + this.name :
-			message.author.id + this.name;
+		const key = guild ? author.id + guild.id + this.name : author.id + this.name;
 
 		let throttle = this.throttles.get(key);
-
 		if (!throttle) {
 			throttle = {
 				endsAt: Date.now() + this.throttleDuration,
-				timeout: this.client.setTimeout(() => {
+				timeout: client.setTimeout(() => {
 					this.throttles.delete(key);
 				}, this.throttleDuration),
 			};

@@ -3,7 +3,7 @@
 const { oneLine } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class Starboard extends StarbotCommand {
+module.exports = class Starboard extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'starboard',
@@ -27,33 +27,29 @@ class Starboard extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { args, channel, guild } = message;
-		const { cache, models } = message.client.db;
+		const { client, args, channel, guild } = message;
 
 		if (!args[0]) {
 			return channel.embed('Please provide a boolean resolvable!');
 		}
 
 		let boolean = (args[0].match(/^(e(?:nabled?)?|d(?:isabled?)|true|false|1|0)$/i) || [])[1];
-
 		if (!boolean) {
 			return channel.embed('Please provide a valid boolean resolvable!');
 		}
 
 		boolean = Boolean(/^e(?:nabled?)?$/i.test(boolean) ? true : /^d(?:isabled?)?$/i.test(boolean) ? false : boolean);
 
-		const [updatedGuild] = await guild.queue(() => models.Guild.upsert({
+		const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert({
 			id: guild.id,
 			starboardEnabled: boolean,
 		}));
 
-		cache.Guild.set(guild.id, updatedGuild);
+		client.db.cache.Guild.set(guild.id, updatedGuild);
 
 		return channel.embed(oneLine`
 			The starboard for this server has been ${boolean ? 'enabled' : 'disabled'}.
 			Make sure to also set the starboard channel so the bot posts starred messages.
 		`);
 	}
-}
-
-module.exports = Starboard;
+};

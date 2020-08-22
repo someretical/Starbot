@@ -3,7 +3,7 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchUsers } = require('../../util/Util.js');
 
-class BlockUser extends StarbotCommand {
+module.exports = class BlockUser extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'blockuser',
@@ -33,11 +33,10 @@ class BlockUser extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, author, channel, guild, args } = message;
-		const { cache, models } = message.client.db;
+		const { client, args, author, channel, guild } = message;
 		const owner = client.isOwner(author.id);
 		const user_id = matchUsers(args[0])[0];
-		let user = null, reason, global_ = false;
+		let user, reason, global_ = false;
 
 		try {
 			user = await client.users.fetch(user_id);
@@ -73,28 +72,26 @@ class BlockUser extends StarbotCommand {
 		}
 
 		if (global_) {
-			const [record] = await user.queue(() => models.GlobalIgnore.upsert({
+			const [record] = await user.queue(() => client.db.models.GlobalIgnore.upsert({
 				user_id: user_id,
 				executor_id: author.id,
 				reason: reason,
 			}));
 
-			cache.GlobalIgnore.set(user_id, record);
+			client.db.cache.GlobalIgnore.set(user_id, record);
 
 			await channel.embed(`${user.toString()} has been globally blocked. Reason: ${reason}`);
 		} else {
-			const [record] = await guild.queue(() => models.Ignore.upsert({
+			const [record] = await guild.queue(() => client.db.models.Ignore.upsert({
 				user_id: user_id,
 				guild_id: guild.id,
 				executor_id: author.id,
 				reason: reason,
 			}));
 
-			cache.Ignore.set(user_id + guild.id, record);
+			client.db.cache.Ignore.set(user_id + guild.id, record);
 
 			await channel.embed(`${user.toString()} has been blocked. Reason: ${reason}`);
 		}
 	}
-}
-
-module.exports = BlockUser;
+};

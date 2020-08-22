@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class Snowflake extends StarbotCommand {
+module.exports = class Snowflake extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'snowflake',
@@ -25,7 +25,7 @@ class Snowflake extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, channel, args } = message;
+		const { client, args, channel } = message;
 		const now = !args[0] ? Date.now() : new Date(parseInt(args[0])).getTime();
 
 		if (Number.isNaN(now) || !Number.isSafeInteger(now) || now < 1420070400000) {
@@ -34,6 +34,4 @@ class Snowflake extends StarbotCommand {
 
 		return channel.embed(client.snowflake(now));
 	}
-}
-
-module.exports = Snowflake;
+};

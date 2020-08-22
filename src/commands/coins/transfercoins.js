@@ -3,7 +3,7 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { pluralize, matchUsers } = require('../../util/Util.js');
 
-class TransferCoins extends StarbotCommand {
+module.exports = class TransferCoins extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'transfercoins',
@@ -33,15 +33,14 @@ class TransferCoins extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, author, channel, args } = message;
-		const { models, cache } = message.client.db;
+		const { client, args, author, channel } = message;
 		const invalid = () => channel.send('Please provide a valid user resolvable!');
 		const amount = parseInt(args[0]);
 		const authorData = author.data;
-		let user = null;
 
 		if (!args[0]) return invalid();
 
+		let user;
 		try {
 			user = await client.users.fetch(matchUsers(args[0])[0]);
 		} catch (err) {
@@ -58,31 +57,33 @@ class TransferCoins extends StarbotCommand {
 
 		await user.add();
 
-		let user1 = null, user2 = null;
+		let user1, user2;
 
 		await client.sequelize.transaction(async t => {
 			const upsertObj1 = authorData.toJSON();
 			upsertObj1.coins -= amount;
+			upsertObj1.username = author.username;
+			upsertObj1.discriminator = author.discriminator;
 
-			const [user1_] = await author.queue(() => models.User.upsert(upsertObj1, {
+			const [user1_] = await author.queue(() => client.db.models.User.upsert(upsertObj1, {
 				transaction: t,
 			}));
 			user1 = user1_;
 
 			const upsertObj2 = user.data.toJSON();
 			upsertObj2.coins += amount;
+			upsertObj2.username = user.username;
+			upsertObj2.discriminator = user.discriminator;
 
-			const [user2_] = await user.queue(() => models.User.upsert(upsertObj2, {
+			const [user2_] = await user.queue(() => client.db.models.User.upsert(upsertObj2, {
 				transaction: t,
 			}));
 			user2 = user2_;
 		});
 
-		cache.User.set(user1.id, user1);
-		cache.User.set(user2.id, user2);
+		client.db.cache.User.set(user1.id, user1);
+		client.db.cache.User.set(user2.id, user2);
 
 		return channel.embed(`You have transferred ${amount} coin${pluralize(amount)} to ${user.toString()}.`);
 	}
-}
-
-module.exports = TransferCoins;
+};

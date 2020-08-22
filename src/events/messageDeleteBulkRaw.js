@@ -8,7 +8,7 @@ module.exports = async (client, data) => {
 
 	if (!channel || channel.ignored) return;
 
-	data.ids.forEach(async id => {
+	data.ids.map(async id => {
 		const star = await starboard.getStarModel(id);
 		if (star) await starboard.destroyStar(star);
 	});

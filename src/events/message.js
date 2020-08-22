@@ -5,24 +5,24 @@ const Logger = require('../util/Logger.js');
 const { fancyJoin, prettifyPermissions } = require('../util/Util.js');
 
 module.exports = async (client, message) => {
-	const { guild, channel, author } = message;
+	const { author, channel, guild } = message;
 
-	if (message.system || (message.guild && !message.guild.available) || !client.ready) return null;
+	if (message.system || (message.guild && !message.guild.available) || !client.ready) return undefined;
 
 	if (guild) {
 		await guild.cacheClient();
 		await guild.add();
 
-		if (!channel.clientHasPermissions()) return null;
+		if (!channel.clientHasPermissions()) return undefined;
 	}
 
 	await author.add();
 
-	if (message.author.bot) return null;
+	if (message.author.bot) return undefined;
 
 	message.parse();
 
-	if (message.ignored && !client.isOwner(author.id)) return null;
+	if (message.ignored && !client.isOwner(author.id)) return undefined;
 
 	if (!message.DM && message.tag) {
 		try {
@@ -30,10 +30,10 @@ module.exports = async (client, message) => {
 		} catch (err) {
 			channel.error(err, 'sendTag');
 		}
-		return null;
+		return undefined;
 	}
 
-	if (!message.command) return null;
+	if (!message.command) return undefined;
 
 	if (message.DM && message.command.guildOnly) {
 		return channel.embed('This command can only be used in a server!');
@@ -84,5 +84,5 @@ module.exports = async (client, message) => {
 		Logger.err(err, 'Failed to run command');
 	}
 
-	return null;
+	return undefined;
 };

@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class CommandName extends StarbotCommand {
+module.exports = class CommandName extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: '',
@@ -27,6 +27,4 @@ class CommandName extends StarbotCommand {
 	async run(message) {
 
 	}
-}
-
-module.exports = CommandName;
+};

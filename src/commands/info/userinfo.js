@@ -4,7 +4,7 @@ const moment = require('moment');
 const { capitaliseFirstLetter: cfl, pluralize, matchUsers } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class UserInfo extends StarbotCommand {
+module.exports = class UserInfo extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'userinfo',
@@ -27,12 +27,12 @@ class UserInfo extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, author, channel, guild, args } = message;
+		const { client, args, author, channel, guild } = message;
 		const invalid = () => channel.embed('Please provide a valid user resolvable!');
-		let user = null, member = null;
 
 		if (!args[0]) return invalid();
 
+		let user, member;
 		try {
 			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
 
@@ -43,11 +43,9 @@ class UserInfo extends StarbotCommand {
 			return invalid();
 		}
 
-		if (!user) return invalid();
-
 		await user.add();
-		const data = user.data;
 
+		const data = user.data;
 		const embed = client.embed()
 			.setAuthor(user.tag, user.avatarURL(), `https://discord.com/channels/@me/${user.id}`)
 			.setThumbnail(user.avatarURL())
@@ -76,6 +74,4 @@ class UserInfo extends StarbotCommand {
 
 		return channel.send(embed);
 	}
-}
-
-module.exports = UserInfo;
+};

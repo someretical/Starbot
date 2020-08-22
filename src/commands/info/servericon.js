@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class ServerIcon extends StarbotCommand {
+module.exports = class ServerIcon extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'servericon',
@@ -33,6 +33,4 @@ class ServerIcon extends StarbotCommand {
 
 		return channel.send(embed);
 	}
-}
-
-module.exports = ServerIcon;
+};

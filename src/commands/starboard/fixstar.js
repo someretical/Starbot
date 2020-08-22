@@ -4,7 +4,7 @@ const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchMessageURL } = require('../../util/Util.js');
 const { invalid } = require('moment');
 
-class FixStar extends StarbotCommand {
+module.exports = class FixStar extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'fixstar',
@@ -28,10 +28,9 @@ class FixStar extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { channel, guild, args } = message;
-		let url = null;
-
+		const { args, channel, guild } = message;
 		const invalidURL = () => channel.embed('Please provide a valid message URL!');
+		let url;
 
 		if (!args[0]) return invalidURL();
 
@@ -48,6 +47,4 @@ class FixStar extends StarbotCommand {
 
 		return channel.embed(`${starMessage.author.toString()}'s message has been fixed.`);
 	}
-}
-
-module.exports = FixStar;
+};

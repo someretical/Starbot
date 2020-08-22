@@ -5,7 +5,7 @@ const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { capitaliseFirstLetter: cfl, fancyJoin, prettifyPermissions } = require('../../util/Util.js');
 
-class Help extends StarbotCommand {
+module.exports = class Help extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'help',
@@ -29,7 +29,7 @@ class Help extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, channel, guild, args } = message;
+		const { client, args, channel, guild } = message;
 		const { commands, aliases } = message.client;
 
 		const prefix = guild ? guild.settings.prefix : client.prefix;
@@ -66,7 +66,7 @@ class Help extends StarbotCommand {
 		}
 
 		let command = aliases.get(args[0].toLowerCase()) ||
-		commands.has(args[0].toLowerCase()) ? commands.get(args[0].toLowerCase()).name : null;
+		commands.has(args[0].toLowerCase()) ? commands.get(args[0].toLowerCase()).name : undefined;
 
 		if (!command) {
 			return channel.embed('No valid arguments were provided');
@@ -103,6 +103,4 @@ class Help extends StarbotCommand {
 
 		return channel.send(embed);
 	}
-}
-
-module.exports = Help;
+};
