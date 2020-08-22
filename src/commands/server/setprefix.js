@@ -3,7 +3,7 @@
 const { oneLine } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class SetPrefix extends StarbotCommand {
+module.exports = class SetPrefix extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'setprefix',
@@ -30,8 +30,7 @@ class SetPrefix extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { args, channel, guild } = message;
-		const { cache, models } = message.client.db;
+		const { client, args, channel, guild } = message;
 
 		if (!args[0]) {
 			return channel.embed('Please choose a prefix!');
@@ -46,15 +45,13 @@ class SetPrefix extends StarbotCommand {
 		const upsertObj = guild.settings.toJSON();
 		upsertObj.prefix = sanitised;
 
-		const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
+		const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert(upsertObj));
 
-		cache.Guild.set(guild.id, updatedGuild);
+		client.db.cache.Guild.set(guild.id, updatedGuild);
 
 		return channel.embed(oneLine`
 			The prefix for this guild has been updated to \`${sanitised}\`.
 			You can still mention the bot to run commands if you forget the custom prefix.
 		`);
 	}
-}
-
-module.exports = SetPrefix;
+};

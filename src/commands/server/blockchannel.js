@@ -3,7 +3,7 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchChannels } = require('../../util/Util.js');
 
-class BlockChannel extends StarbotCommand {
+module.exports = class BlockChannel extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'blockchannel',
@@ -27,8 +27,7 @@ class BlockChannel extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { args, channel, guild } = message;
-		const { cache, models } = message.client.db;
+		const { client, args, channel, guild } = message;
 		const channel_ = guild.channels.cache.get(matchChannels(args[0])[0]);
 
 		if (!channel_ || !['text', 'news'].includes(channel_.type)) {
@@ -45,12 +44,10 @@ class BlockChannel extends StarbotCommand {
 		upsertObj.ignoredChannels.push(channel_.id);
 		upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
 
-		const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
+		const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert(upsertObj));
 
-		cache.Guild.set(guild.id, updatedGuild);
+		client.db.cache.Guild.set(guild.id, updatedGuild);
 
 		return channel.embed(`${channel_.toString()} will now be ignored by the bot.`);
 	}
-}
-
-module.exports = BlockChannel;
+};

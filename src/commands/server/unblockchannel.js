@@ -3,7 +3,7 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchChannels } = require('../../util/Util.js');
 
-class UnblockChannel extends StarbotCommand {
+module.exports = class UnblockChannel extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'unblockchannel',
@@ -27,8 +27,7 @@ class UnblockChannel extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { args, channel, guild } = message;
-		const { cache, models } = message.client.db;
+		const { client, args, channel, guild } = message;
 		const invalid = () => channel.embed('Please provide a channel which has been blocked!');
 
 		if (!args[0]) return invalid();
@@ -44,12 +43,10 @@ class UnblockChannel extends StarbotCommand {
 		upsertObj.ignoredChannels.splice(upsertObj.ignoredChannels.indexOf(id), 1);
 		upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
 
-		const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
+		const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert(upsertObj));
 
-		cache.Guild.set(guild.id, updatedGuild);
+		client.db.cache.Guild.set(guild.id, updatedGuild);
 
 		return channel.embed(`The bot will now be listening to <#${id}>.`);
 	}
-}
-
-module.exports = UnblockChannel;
+};

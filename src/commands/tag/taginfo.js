@@ -4,7 +4,7 @@ const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { pluralize: s } = require('../../util/Util.js');
 
-class TagInfo extends StarbotCommand {
+module.exports = class TagInfo extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'taginfo',
@@ -28,14 +28,13 @@ class TagInfo extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, channel, guild, args } = message;
+		const { client, args, channel, guild } = message;
 
 		if (!args[0]) {
 			return channel.embed('Please provide a tag name!');
 		}
 
 		const tag = guild.tags.get(guild.id + args[0].toLowerCase());
-
 		if (!tag) {
 			return channel.embed('That tag does not exist!');
 		}
@@ -56,6 +55,4 @@ class TagInfo extends StarbotCommand {
 
 		return channel.send(embed);
 	}
-}
-
-module.exports = TagInfo;
+};

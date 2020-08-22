@@ -4,7 +4,7 @@ const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchChannels, yes: yesRe, no: noRe, cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
 
-class Setup extends StarbotCommand {
+module.exports = class Setup extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'setup',
@@ -23,7 +23,6 @@ class Setup extends StarbotCommand {
 
 	run(message) {
 		const { client, author, channel, guild } = message;
-		const { cache, models } = message.client.db;
 		const filter = msg => msg.author.id === author.id;
 		const options = { time: 15000 };
 		const upsertObj = guild.settings.toJSON();
@@ -331,9 +330,9 @@ class Setup extends StarbotCommand {
 			if (upsertObj.ignoredChannels.length > 10) displayedChannels += '...';
 
 			upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
-			const [updatedGuild] = await guild.queue(() => models.Guild.upsert(upsertObj));
+			const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert(upsertObj));
 
-			cache.Guild.set(guild.id, updatedGuild);
+			client.db.cache.Guild.set(guild.id, updatedGuild);
 
 			const embed = client.embed(null, true)
 				.setTitle(`Settings for ${guild.name}`)
@@ -350,6 +349,4 @@ class Setup extends StarbotCommand {
 			return channel.awaiting.delete(author.id);
 		}
 	}
-}
-
-module.exports = Setup;
+};

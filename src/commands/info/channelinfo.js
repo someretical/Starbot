@@ -4,7 +4,7 @@ const moment = require('moment');
 const { capitaliseFirstLetter: cfl, pluralize, matchChannels } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class ChannelInfo extends StarbotCommand {
+module.exports = class ChannelInfo extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'channelinfo',
@@ -28,7 +28,7 @@ class ChannelInfo extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, channel, guild, args } = message;
+		const { client, args, channel, guild } = message;
 		const infoChannel = guild.channels.cache.get(!args[0] ? channel.id : matchChannels(args[0])[0]);
 
 		if (!infoChannel) {
@@ -36,7 +36,6 @@ class ChannelInfo extends StarbotCommand {
 		}
 
 		const channelName = `${['text', 'news'].includes(infoChannel.type) ? '#' : ''}${infoChannel.name}`;
-
 		const embed = client.embed()
 			.setAuthor(guild.name, guild.iconURL(), `https://discord.com/channels/${guild.id}/${infoChannel.id}`)
 			.setThumbnail(guild.iconURL())
@@ -68,6 +67,4 @@ class ChannelInfo extends StarbotCommand {
 
 		return channel.send(embed);
 	}
-}
-
-module.exports = ChannelInfo;
+};

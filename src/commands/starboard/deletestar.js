@@ -3,7 +3,7 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchMessageURL } = require('../../util/Util.js');
 
-class DeleteStar extends StarbotCommand {
+module.exports = class DeleteStar extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'deletestar',
@@ -27,11 +27,9 @@ class DeleteStar extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { channel, guild, args } = message;
-		let url = null;
-		let starMessage_id = null;
-
+		const { args, channel, guild } = message;
 		const invalidURL = () => channel.embed('Please provide a valid message ID or URL!');
+		let url, starMessage_id;
 
 		if (!args[0]) return invalidURL();
 
@@ -55,6 +53,4 @@ class DeleteStar extends StarbotCommand {
 
 		return channel.embed(`The specified message has been deleted.`);
 	}
-}
-
-module.exports = DeleteStar;
+};

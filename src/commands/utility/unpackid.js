@@ -4,7 +4,7 @@ const moment = require('moment');
 const { SnowflakeUtil } = require('discord.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class UnpackID extends StarbotCommand {
+module.exports = class UnpackID extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'unpackid',
@@ -28,7 +28,7 @@ class UnpackID extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, channel, args } = message;
+		const { client, args, channel } = message;
 
 		if (!args[0] || /[\D]/.test(args[0])) {
 			return channel.embed('Please provide a valid ID!');
@@ -46,6 +46,4 @@ class UnpackID extends StarbotCommand {
 
 		return channel.send(embed);
 	}
-}
-
-module.exports = UnpackID;
+};
