@@ -11,22 +11,18 @@ module.exports = Discord.Structures.extend('TextChannel', TextChannel => {
 			this.awaiting = new Set();
 		}
 
-		// Returns boolean
 		get ignored() {
 			return JSON.parse(this.guild.settings.ignoredChannels).includes(this.id);
 		}
 
-		// Returns promise
 		embed(text) {
 			return this.send(this.client.embed(text));
 		}
 
-		// Returns promise
 		error(err, code) {
 			return this.send(formatErrorDiscord(err, code));
 		}
 
-		// Returns boolean
 		clientHasPermissions(perms = []) {
 			const permissions = this.permissionsFor(this.guild.members.cache.get(this.client.user.id));
 
