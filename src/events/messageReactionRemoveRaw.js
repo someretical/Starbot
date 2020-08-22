@@ -17,7 +17,6 @@ module.exports = async (client, data) => {
 	if (!message) return;
 
 	await message.author.add();
-
 	if (message.author.id === data.user_id) return;
 
 	if (message) await guild.starboard.removeStar(message, data.user_id);
