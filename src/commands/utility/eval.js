@@ -1,8 +1,10 @@
 'use strict';
 
 const { inspect } = require('util');
+const tags = require('common-tags');
+const Discord = require('discord.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { sanitise } = require('../../util/Util.js');
+const Util = require('../../util/Util.js');
 
 module.exports = class Eval extends StarbotCommand {
 	constructor(client) {
@@ -25,26 +27,61 @@ module.exports = class Eval extends StarbotCommand {
 			ownerOnly: true,
 			throttle: 5000,
 		});
+
+		this.lastResult = null;
 	}
 
-	async run(message) {
-		const { channel, raw } = message;
+	run(message) {
+		// eslint-disable-next-line no-unused-vars
+		const { client, raw, channel } = message;
 
+		let hrDiff;
 		try {
-			const evaluated = await eval(raw.args);
+			const hrStart = process.hrtime();
 
-			let result = sanitise(inspect(evaluated));
+			this.lastResult = eval(raw.args);
 
-			if (!result.length) {
-				channel.send(`\`\`\`js\nundefined\n\`\`\``);
-				return;
-			}
-
-			result = result.match(/[\s\S]{1,1988}/g) || [];
-
-			for (const part of result) channel.send(`\`\`\`js\n${part}\n\`\`\``);
+			hrDiff = process.hrtime(hrStart);
 		} catch (err) {
-			channel.send(`\`\`\`js\n${sanitise(err.stack)}\n\`\`\``);
+			return channel.embed(`Error while evaluating: \`${err}\``);
+		}
+
+		this.hrStart = process.hrtime();
+
+		const result = this.makeResultMessages(this.lastResult, hrDiff, raw.args);
+		if (Array.isArray(result)) {
+			return result.map(item => channel.send(item));
+		} else {
+			return channel.send(result);
+		}
+	}
+
+	makeResultMessages(result, hrDiff, input = null) {
+		const inspected = Util.sanitise(inspect(result, { depth: 0 })
+			.replace(/!!NL!!/g, '\n'));
+		const split = inspected.split('\n');
+		const last = inspected.length - 1;
+		const prependPart = inspected[0] !== '{' && inspected[0] !== '[' && inspected[0] !== '\'' ? split[0] : inspected[0];
+		const appendPart = inspected[last] !== '}' && inspected[last] !== ']' && inspected[last] !== '\'' ?
+			split[split.length - 1] :
+			inspected[last];
+		const prepend = `\`\`\`js\n${prependPart}\n`;
+		const append = `\n${appendPart}\n\`\`\``;
+
+		if (input) {
+			return Discord.splitMessage(tags.stripIndents`
+				*Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*
+				\`\`\`javascript
+				${inspected}
+				\`\`\`
+			`, { maxLength: 1900, prepend, append });
+		} else {
+			return Discord.splitMessage(tags.stripIndents`
+				*Callback executed after ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*
+				\`\`\`javascript
+				${inspected}
+				\`\`\`
+			`, { maxLength: 1900, prepend, append });
 		}
 	}
 };
