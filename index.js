@@ -1,14 +1,12 @@
 'use strict';
 
-const Starbot = require('./src/structures/Starbot.js');
-/* eslint-disable no-unused-vars */
-const StarbotDMChannel = require('./src/structures/StarbotDMChannel.js');
-const StarbotGuild = require('./src/structures/StarbotGuild.js');
-const StarbotMessage = require('./src/structures/StarbotMessage.js');
-const StarbotTextChannel = require('./src/structures/StarbotTextChannel.js');
-const StarbotUser = require('./src/structures/StarbotUser.js');
-/* eslint-enable no-unused-vars */
+require('./src/structures/StarbotDMChannel.js');
+require('./src/structures/StarbotGuild.js');
+require('./src/structures/StarbotMessage.js');
+require('./src/structures/StarbotTextChannel.js');
+require('./src/structures/StarbotUser.js');
 
+const Starbot = require('./src/structures/Starbot.js');
 const client = new Starbot({
 	shardCount: 1,
 	messageCacheMaxSize: 200,
