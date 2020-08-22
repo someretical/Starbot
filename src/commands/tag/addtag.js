@@ -2,8 +2,9 @@
 
 const { oneLine, stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { cancel: re } = require('../../util/Util.js');
 
-class AddTag extends StarbotCommand {
+module.exports = class AddTag extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'addtag',
@@ -22,19 +23,17 @@ class AddTag extends StarbotCommand {
 
 	run(message) {
 		const { client, author, channel, guild } = message;
-		const { commands, aliases } = message.client;
-		const { cache, models } = message.client.db;
 
 		if (guild.tags.filter(t => t.creator_id === author.id).size > 10) {
 			return channel.embed(oneLine`
-				Sorry but each server member can only have 10 tags maximum.
-				Please delete an existing tag to continue.
+			Sorry but each server member can only have 10 tags maximum.
+			Please delete an existing tag to continue.
 			`);
 		}
 
 		const filter = msg => msg.author.id === author.id;
 		const options = { time: 15000 };
-		const re = /^cancel$/i;
+		const upsertObj = { guild_id: guild.id, creator_id: author.id };
 
 		channel.awaiting.add(author.id);
 
@@ -76,15 +75,15 @@ class AddTag extends StarbotCommand {
 					return collector.stop('cancel');
 				}
 
-				if (commands.has(msg.content.toLowerCase()) || aliases.has(msg.content.toLowerCase())) {
+				if (client.commands.has(msg.content.toLowerCase()) || client.aliases.has(msg.content.toLowerCase())) {
 					return channel.embed('A command or alias with this name already exists!');
 				}
 
-				if (guild.tags.has(guild.id + msg.content.toLowerCase())) {
+				if (guild.tags.has(guild.id + msg.content)) {
 					return channel.embed('A tag with this name already exists!');
 				}
 
-				if (/\s+/g.test(msg.content)) {
+				if (/\s/g.test(msg.content)) {
 					return channel.embed('Sorry but tag names can\'t contain spaces.');
 				}
 
@@ -92,7 +91,9 @@ class AddTag extends StarbotCommand {
 					return channel.embed('Sorry but tag names are capped at 32 characters.');
 				}
 
-				return collector.stop({ name: msg.content.toLowerCase() });
+				upsertObj.name = msg.content;
+
+				return collector.stop();
 			});
 
 			collector.on('end', async (collected, reason) => {
@@ -103,14 +104,14 @@ class AddTag extends StarbotCommand {
 
 				return askResponse(reason);
 			});
-			return null;
+			return undefined;
 		}
 
-		async function askResponse(obj) {
+		async function askResponse() {
 			const embed = client.embed(null, true)
 				.setTitle(`Create a new tag for ${guild.name}`)
 				.setDescription(stripIndents`
-					Please enter the response for the tag \`${obj.name}\`.
+					Please enter the response for the tag \`${upsertObj.name}\`.
 					Type \`cancel\` at any time to stop the process.
 				`)
 				.addField('Placeholders', stripIndents`
@@ -131,7 +132,9 @@ class AddTag extends StarbotCommand {
 					return channel.embed('Sorry but tag responses are capped at 1024 characters.');
 				}
 
-				return collector.stop({ name: obj.name, response: msg.content });
+				upsertObj.response = msg.content;
+
+				return collector.stop();
 			});
 
 			collector.on('end', async (collected, reason) => {
@@ -142,20 +145,15 @@ class AddTag extends StarbotCommand {
 
 				return finalise(reason);
 			});
-			return null;
+			return undefined;
 		}
 
-		async function finalise({ name, response }) {
-			const [tag] = await guild.queue(() => models.Tag.upsert({
-				guild_id: guild.id,
-				name: name,
-				response: response,
-				creator_id: author.id,
-			}));
+		async function finalise() {
+			const [tag] = await guild.queue(() => client.db.models.Tag.upsert(upsertObj));
 
-			cache.Tag.set(guild.id + name, tag);
+			client.db.cache.Tag.set(guild.id + upsertObj.name, tag);
 
-			const embed = client.embed(`The \`${name}\` tag has been successfully created.`, true)
+			const embed = client.embed(`The \`${upsertObj.name}\` tag has been successfully created.`, true)
 				.setTitle(`Create a new tag for ${guild.name}`);
 
 			await channel.send(embed);
@@ -163,6 +161,4 @@ class AddTag extends StarbotCommand {
 			return channel.awaiting.delete(author.id);
 		}
 	}
-}
-
-module.exports = AddTag;
+};
