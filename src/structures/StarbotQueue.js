@@ -16,8 +16,6 @@ class StarbotQueue {
 		this.list.push(promiseFunction);
 
 		if (!this.isProcessing) this.process();
-
-		return null;
 	}
 
 	process() {

@@ -110,24 +110,21 @@ class Util {
 		return paged;
 	}
 
-	// Returns message ID, obj with message and channel ID or null
 	static matchMessageURL(str, includeChannel = false) {
-		let id = null;
-
-		let url = null;
+		let id, url;
 		try {
 			url = new URL(str);
 		} catch (err) {
-			url = includeChannel ? null : (str.match(/^\d+$/) || [])[1];
+			url = includeChannel ? undefined : (str.match(/^\d+$/) || [])[1];
 		}
 
-		if (!url) return null;
+		if (!url) return undefined;
 
 		if (url.prototype instanceof URL) {
-			if (!url.pathname) return null;
+			if (!url.pathname) return undefined;
 
 			const [, channel_id, message_id] = url.pathname.match(/\/channels\/\d+\/(\d+)\/(\d+)/) || [];
-			if (!message_id) return null;
+			if (!message_id) return undefined;
 
 			if (includeChannel) {
 				return { message_id: message_id, channel_id: channel_id };
