@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class TagList extends StarbotCommand {
+module.exports = class TagList extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'taglist',
@@ -26,14 +26,13 @@ class TagList extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, channel, guild, args } = message;
+		const { client, args, channel, guild } = message;
 		const tags = guild.tags;
 		const page = parseInt(args[0]) || 1;
 
 		if (Number.isNaN(page) || !Number.isSafeInteger(page) || page < 1) {
 			return channel.embed('Please provide a valid page!');
 		}
-
 
 		const paged = Array.from(tags.values()).slice((page - 1) * 12, page * 12);
 		const start = ((page - 1) * 12) + 1;
@@ -47,6 +46,4 @@ class TagList extends StarbotCommand {
 
 		return channel.send(embed);
 	}
-}
-
-module.exports = TagList;
+};

@@ -4,7 +4,7 @@ const moment = require('moment');
 const { capitaliseFirstLetter: cfl, pluralize } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class ServerInfo extends StarbotCommand {
+module.exports = class ServerInfo extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'serverinfo',
@@ -27,7 +27,6 @@ class ServerInfo extends StarbotCommand {
 		const channels = guild.channels.cache.size;
 		const emojis = guild.emojis.cache.size;
 		const boosters = guild.premiumSubscriptionCount;
-
 		const embed = client.embed()
 			.setAuthor(guild.name, guild.iconURL(), `https://discord.com/channels/${guild.id}`)
 			.setThumbnail(guild.iconURL())
@@ -51,6 +50,4 @@ class ServerInfo extends StarbotCommand {
 
 		return channel.send(embed);
 	}
-}
-
-module.exports = ServerInfo;
+};

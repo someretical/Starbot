@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class ViewSettings extends StarbotCommand {
+module.exports = class ViewSettings extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'viewsettings',
@@ -44,6 +44,4 @@ class ViewSettings extends StarbotCommand {
 
 		channel.send(embed);
 	}
-}
-
-module.exports = ViewSettings;
+};

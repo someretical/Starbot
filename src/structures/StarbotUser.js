@@ -11,17 +11,14 @@ module.exports = Discord.Structures.extend('User', User => {
 			this._queue = new StarbotQueue();
 		}
 
-		// Returns instance of User model
 		get data() {
 			return this.client.db.cache.User.get(this.id);
 		}
 
-		// Returns boolean
 		get ignored() {
 			return this.client.db.cache.GlobalIgnore.has(this.id);
 		}
 
-		// Returns promise
 		queue(promiseFunction) {
 			return new Promise((resolve, reject) => {
 				this._queue.add(() => promiseFunction().then(value => {
@@ -34,18 +31,19 @@ module.exports = Discord.Structures.extend('User', User => {
 			});
 		}
 
-		// Returns null or error
 		async add() {
-			if (this.client.db.cache.User.has(this.id)) return null;
+			const user = this.client.db.cache.User.get(this.id);
+			if (user) {
+				if (user.username === this.username && user.discriminator === this.discriminator) return;
+			}
 
-			const [user] = await this.queue(() => this.client.db.models.User.upsert({
+			const [upserted] = await this.queue(() => this.client.db.models.User.upsert({
 				id: this.id,
 				username: this.username,
 				discriminator: this.discriminator,
 			}));
 
-			this.client.db.cache.User.set(this.id, user);
-			return null;
+			this.client.db.cache.User.set(this.id, upserted);
 		}
 	}
 

@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class Star extends StarbotCommand {
+module.exports = class Star extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'star',
@@ -26,13 +26,12 @@ class Star extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { author, channel, guild, args } = message;
-		let url = null;
-
+		const { args, author, channel, guild } = message;
 		const invalidURL = () => channel.embed('Please provide a valid message URL!');
 
 		if (!args[0]) return invalidURL();
 
+		let url;
 		try {
 			url = new URL(args[0]);
 		} catch (err) {
@@ -68,6 +67,4 @@ class Star extends StarbotCommand {
 
 		return channel.embed(`You have added a star to ${starMessage.author.toString()}'s message.`);
 	}
-}
-
-module.exports = Star;
+};

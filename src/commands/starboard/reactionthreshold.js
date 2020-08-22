@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class ReactionThreshold extends StarbotCommand {
+module.exports = class ReactionThreshold extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'reactionthreshold',
@@ -26,8 +26,7 @@ class ReactionThreshold extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { args, channel, guild } = message;
-		const { cache, models } = message.client.db;
+		const { client, args, channel, guild } = message;
 
 		if (!args[0]) {
 			return channel.embed('Please provide an integer!');
@@ -39,15 +38,13 @@ class ReactionThreshold extends StarbotCommand {
 			return channel.embed('Please provide a valid integer!');
 		}
 
-		const [updatedGuild] = await guild.queue(() => models.Guild.upsert({
+		const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert({
 			id: guild.id,
 			reactionThreshold: limit,
 		}));
 
-		cache.Guild.set(guild.id, updatedGuild);
+		client.db.cache.Guild.set(guild.id, updatedGuild);
 
 		return channel.embed(`The reaction threshold for this server has been set to ${limit} ⭐.`);
 	}
-}
-
-module.exports = ReactionThreshold;
+};

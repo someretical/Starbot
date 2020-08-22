@@ -20,26 +20,20 @@ class Starboard {
 		return this.client.db.models.Star.findAll({ where: { guild_id: this.guild.id } });
 	}
 
-	// Returns model or error
 	async getStarModel(message_id) {
 		let star = this.client.db.cache.Star.get(message_id);
-
-		if (star) {
-			return star;
-		} else {
+		if (!star) {
 			star = await this.client.db.models.Star.findByPk(message_id);
-			if (!star) return null;
+			if (!star) return undefined;
 
 			this.client.db.cache.Star.set(message_id, star);
-
-			return star;
 		}
+
+		return star;
 	}
 
-	// Returns promise
 	queue(message_id, promiseFunction) {
 		let queue = this.queues.get(message_id);
-
 		if (!queue) {
 			this.queues.set(message_id, new StarbotQueue());
 
@@ -63,7 +57,6 @@ class Starboard {
 		return this.queue(message.id, () => this._fixStar(message));
 	}
 
-	// Returns null or error OR 1 if message is invalid
 	async _fixStar(message) {
 		const ignored = this.guild.ignores;
 		const globalIgnored = this.client.db.cache.GlobalIgnore;
@@ -89,10 +82,8 @@ class Starboard {
 
 		reactObj.combinedLength = reactObj.reactors.length + reactObj.cmdReactors.length;
 		if (reactObj.combinedLength === 0) {
-			if (star) {
-				await this._destroyStar(star);
-				return null;
-			}
+			if (star) return this._destroyStar(star);
+
 			return 1;
 		}
 
@@ -103,7 +94,6 @@ class Starboard {
 		return this.queue(message.id, () => this._addStar(message, user_id, cmd));
 	}
 
-	// Returns null or error
 	async _addStar(message, user_id, cmd) {
 		const star = await this.getStarModel(message.id);
 		const reactObj = { reactors: [], cmdReactors: [] };
@@ -145,7 +135,6 @@ class Starboard {
 		return this.queue(message.id, () => this._removeStar(message, user_id, cmd));
 	}
 
-	// Returns null or error
 	async _removeStar(message, user_id, cmd) {
 		const star = await this.getStarModel(message.id);
 		const reactObj = { reactors: [], cmdReactors: [] };
@@ -153,7 +142,6 @@ class Starboard {
 		if (star) {
 			const parsed = cmd ? JSON.parse(star.cmdReactors) : JSON.parse(star.reactors);
 			const index = parsed.indexOf(user_id);
-
 
 			if (index > -1) parsed.splice(index, 1);
 
@@ -176,23 +164,20 @@ class Starboard {
 
 		reactObj.combinedLength = reactObj.reactors.length + reactObj.cmdReactors.length;
 		if (reactObj.combinedLength === 0) {
-			if (star) await this._destroyStar(star);
-			return;
+			if (star) return this._destroyStar(star);
 		}
 
-		await this._updateStar(message, reactObj, star);
+		return this._updateStar(message, reactObj, star);
 	}
 
-	// Returns null or error
 	async _updateStar(message, reactObj, star) {
-		const { starboardEnabled, reactionThreshold } = message.guild.settings;
+		const { reactionThreshold, starboardEnabled } = message.guild.settings;
 		const starboard = message.guild.starboard.channel;
-		let botMessage_id = null;
+		let botMessage_id;
 
 		if (starboard && starboard.clientHasPermissions() && starboardEnabled) {
 			if (star) {
 				const botMessage = await starboard.messages.fetch(star.botMessage_id);
-
 				if (botMessage) botMessage_id = botMessage.id;
 			}
 
@@ -221,30 +206,24 @@ class Starboard {
 		});
 
 		this.client.db.cache.Star.set(message.id, updatedStar);
-		return null;
 	}
 
 	destroyStar(star) {
 		return this.queue(star.message_id, () => this._destroyStar(star));
 	}
 
-	// Returns null or error
 	async _destroyStar(star) {
 		await star.destroy();
 
 		this.client.db.cache.Star.delete(star.message_id);
 
 		const starboard = this.channel;
-
 		if (starboard) {
 			const botMessage = await starboard.messages.fetch(star.botMessage_id);
-
 			if (botMessage) await botMessage.delete();
 		}
-		return null;
 	}
 
-	// Returns promise with collection of all reactors mapped by user id
 	static fetchAllReactors(reaction) {
 		const users = new Discord.Collection();
 
@@ -260,7 +239,6 @@ class Starboard {
 		return fetch();
 	}
 
-	// Returns array with message embed and message attachment
 	static buildStarboardMessage(message, reactionCount) {
 		const starEmoji = Starboard.getStarEmoji(reactionCount);
 		const createdAt = moment(message.createdAt).format('Do MMM YYYY');
@@ -285,37 +263,31 @@ class Starboard {
 		return embed;
 	}
 
-	// Returns image URL or null
 	static getImageAttachment(message) {
-		let imageURL = null;
 		const extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
 		const linkRegex = /https?:\/\/(?:\w+\.)?[\w-]+\.[\w]{2,3}(?:\/[\w-_.]+)+\.(?:png|jpg|jpeg|gif|webp)/;
+		let imageURL;
 
 		const msgEmbed = message.embeds.find(e => e.image && extensions.includes(path.extname(e.image.url)));
-
 		if (msgEmbed) imageURL = msgEmbed.image.url;
 
 		const imageAttachment = message.attachments.find(file => extensions.includes(path.extname(file.url)));
-
 		if (imageAttachment) imageURL = imageAttachment.url;
 
 		if (message.content && !imageURL) {
 			const link = message.content.match(linkRegex);
-
 			if (link && extensions.includes(path.extname(link[0]))) imageURL = link[0];
 		}
 
 		return imageURL;
 	}
 
-	// Returns messageattachment object or null
 	static getOtherAttchement(message) {
 		const extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
 
 		return message.attachments.find(file => !extensions.includes(path.extname(file.url)));
 	}
 
-	// Returns emoji
 	static getStarEmoji(count) {
 		if (count < 5) return '⭐';
 		if (count < 10) return '🌟';

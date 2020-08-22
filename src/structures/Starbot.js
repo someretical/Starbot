@@ -28,14 +28,11 @@ class Starbot extends Discord.Client {
 		return Discord.SnowflakeUtil.generate(timestamp);
 	}
 
-	// Returns partially constructed embed
 	embed(text = null, fancy = false) {
 		const homepageURL = require(path.resolve('package.json')).homepage;
 		const newEmbed = new Discord.MessageEmbed().setColor(this.embedColour);
 
-		if (typeof text === 'string') {
-			newEmbed.setDescription(text);
-		}
+		if (typeof text === 'string') newEmbed.setDescription(text);
 
 		if (fancy) {
 			newEmbed.setAuthor(this.user.username, this.user.displayAvatarURL(), homepageURL).setTimestamp();
@@ -44,12 +41,10 @@ class Starbot extends Discord.Client {
 		return newEmbed;
 	}
 
-	// Returns boolean
 	isOwner(id) {
 		return this.owners.includes(id);
 	}
 
-	// Returns undefined
 	async run() {
 		this.loadEvents();
 		this.loadCommands();
@@ -60,7 +55,6 @@ class Starbot extends Discord.Client {
 		await this.login(process.env.TOKEN).catch(Logger.err);
 	}
 
-	// Returns undefined
 	loadEvents() {
 		try {
 			let events = fs.readdirSync('./src/events/').filter(file => file.endsWith('.js'));
@@ -81,7 +75,6 @@ class Starbot extends Discord.Client {
 		}
 	}
 
-	// Returns undefined
 	loadCommands() {
 		try {
 			let commandCount = 0;

@@ -3,7 +3,7 @@
 const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class AddCoins extends StarbotCommand {
+module.exports = class AddCoins extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'addcoins',
@@ -21,9 +21,7 @@ class AddCoins extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, channel, author, command } = message;
-		const { cache, models } = message.client.db;
-
+		const { client, author, channel, command } = message;
 		const throttleDuration = command.checkThrottle(message, 'addcoins');
 
 		if (throttleDuration && !client.isOwner(author.id)) {
@@ -34,15 +32,15 @@ class AddCoins extends StarbotCommand {
 
 		const upsertObj = author.data.toJSON();
 		upsertObj.coins += 100;
+		upsertObj.username = author.username;
+		upsertObj.discriminator = author.discriminator;
 
-		const [updatedUser] = await author.queue(() => models.User.upsert(upsertObj));
+		const [updatedUser] = await author.queue(() => client.db.models.User.upsert(upsertObj));
 
-		cache.User.set(author.id, updatedUser);
+		client.db.cache.User.set(author.id, updatedUser);
 
 		await channel.embed(`You have claimed your daily 100 coins! You now have ${updatedUser.coins} coins.`);
 
 		return command.globalThrottle(message, 'addcoins', 86400000);
 	}
-}
-
-module.exports = AddCoins;
+};

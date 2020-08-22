@@ -2,7 +2,7 @@
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
-class DeleteTag extends StarbotCommand {
+module.exports = class DeleteTag extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'deletetag',
@@ -26,14 +26,13 @@ class DeleteTag extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, channel, guild, args, member } = message;
+		const { client, args, channel, guild, member } = message;
 
 		if (!args[0]) {
 			return channel.embed('Please provide a tag name!');
 		}
 
 		const tag = guild.tags.get(guild.id + args[0].toLowerCase());
-
 		if (!tag) {
 			return channel.embed('That tag does not exist!');
 		}
@@ -48,6 +47,4 @@ class DeleteTag extends StarbotCommand {
 
 		return channel.embed(`The tag \`${args[0].toLowerCase()}\` has been deleted.`);
 	}
-}
-
-module.exports = DeleteTag;
+};

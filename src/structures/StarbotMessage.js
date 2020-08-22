@@ -8,29 +8,23 @@ module.exports = Discord.Structures.extend('Message', Message => {
 		constructor(...args) {
 			super(...args);
 
-			this.prefix = null;
-			this.raw = { command: '', args: '' };
-			this.command = null;
+			this.prefix = undefined;
+			this.raw = { command: undefined, args: undefined };
+			this.command = undefined;
 			this.args = [];
-			this.tag = null;
+			this.tag = undefined;
 		}
 
-		// Returns boolean
-		// Applies to ignoring commands while a message collector is active
-		// Applies to blacklist
-		// Applies to ignored channels
 		get ignored() {
 			return this.channel.awaiting.has(this.author.id) || this.author.ignored ||
 				(this.guild && this.channel.ignored) ||
 				(this.guild && this.guild.ignores.has(this.author.id + this.guild.id));
 		}
 
-		// Returns boolean
 		get DM() {
 			return this.channel.type === 'dm';
 		}
 
-		// Returns empty array if all permission requirements are met
 		get missingAuthorPermissions() {
 			const missingPerms = [];
 
@@ -41,9 +35,8 @@ module.exports = Discord.Structures.extend('Message', Message => {
 			return missingPerms;
 		}
 
-		// Returns null or error
 		async sendTag() {
-			if (!this.guild.settings.tagsEnabled) return null;
+			if (!this.guild.settings.tagsEnabled) return;
 
 			const response = this.tag.response.replace(/<guild_name>/ig, this.guild.name)
 				.replace(/<channel>/ig, this.channel.toString())
@@ -57,10 +50,8 @@ module.exports = Discord.Structures.extend('Message', Message => {
 			const [updatedTag] = await this.guild.queue(() => this.client.db.models.Tag.upsert(upsertObj));
 
 			this.client.db.cache.Tag.set(this.guild.id + this.tag.name, updatedTag);
-			return null;
 		}
 
-		// Returns parsed StarbotMessage
 		parse() {
 			const prefix = this.guild && this.guild.settings.prefix ?
 				sanitise(this.guild.settings.prefix, true) :
@@ -93,8 +84,6 @@ module.exports = Discord.Structures.extend('Message', Message => {
 					.replace(/<single_quote>/gi, '\'')
 					.replace(/<double_quote>/gi, '"'));
 			}
-
-			return this;
 		}
 	}
 
