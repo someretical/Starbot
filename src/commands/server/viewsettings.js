@@ -1,6 +1,7 @@
 'use strict';
 
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { pluralize } = require('../../util/Util.js');
 
 module.exports = class ViewSettings extends StarbotCommand {
 	constructor(client) {
@@ -20,27 +21,19 @@ module.exports = class ViewSettings extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, channel } = message;
-		const { settings } = message.guild;
+		const { client, channel, guild } = message;
 
-		const ignoredChannels = JSON.parse(settings.ignoredChannels);
-		let displayedChannels = (ignoredChannels.length < 11 ?
-			ignoredChannels :
-			ignoredChannels.slice(0, -ignoredChannels.length + 10))
-			.map(id => `<#${id}>`)
-			.join(', ');
-
-		if (ignoredChannels.length > 10) displayedChannels += '...';
-
+		const s = guild.settings;
+		const ignoredChannels = JSON.parse(guild.settings.ignoredChannels);
 		const embed = client.embed(null, true)
-			.setTitle(`Settings for ${message.guild.name}`)
-			.setThumbnail(message.guild.iconURL())
-			.addField('Prefix', `\`${settings.prefix}\``, true)
-			.addField('Starboard', settings.starboard_id ? `<#${settings.starboard_id}>` : 'None', true)
-			.addField('Starboard enabled?', settings.starboardEnabled ? 'Yes' : 'No', true)
-			.addField('Reaction threshold', `${settings.reactionThreshold} ⭐`, true)
-			.addField('Tags enabled?', settings.tagsEnabled ? 'Yes' : 'No', true)
-			.addField('Ignored channels', displayedChannels, true);
+			.setTitle(`Settings for ${guild.name}`)
+			.setThumbnail(guild.iconURL())
+			.addField('Prefix', `\`${s.prefix}\``, true)
+			.addField('Starboard', s.starboard_id ? `<#${s.starboard_id}>` : 'None', true)
+			.addField('Starboard enabled?', s.starboardEnabled ? 'Yes' : 'No', true)
+			.addField('Reaction threshold', `${s.reactionThreshold} ⭐`, true)
+			.addField('Tags enabled?', s.tagsEnabled ? 'Yes' : 'No', true)
+			.addField('Ignored channels', `${ignoredChannels.length} channel${pluralize(ignoredChannels.length)}`, true);
 
 		channel.send(embed);
 	}
