@@ -29,7 +29,7 @@ module.exports = class Help extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, args, channel, guild } = message;
+		const { client, args, author, channel, guild } = message;
 		const { commands, aliases } = message.client;
 
 		const prefix = guild ? guild.settings.prefix : client.prefix;
@@ -37,17 +37,15 @@ module.exports = class Help extends StarbotCommand {
 		if (!args.length) {
 			const embed = client.embed(`For more detailed help, run \`${prefix}help <command>\``, true)
 				.setTitle('List of commands');
-			const groups = [];
+			let sorted = client.commandGroups.sort();
 
-			commands.forEach(cmd => {
-				if (!groups.includes(cmd.group)) groups.push(cmd.group);
+			if (!client.isOwner(author.id)) sorted = sorted.filter(group => group !== 'hidden');
+
+			sorted.map(group => {
+				const cmds = commands.filter(cmd => cmd.group === group);
+
+				return embed.addField(cfl(group), cmds.map(cmd => `\`${cmd.name}\``).sort().join(' '), false);
 			});
-
-			for (const group of groups.sort()) {
-				const filtered = commands.filter(cmd => cmd.group === group);
-
-				embed.addField(cfl(group), filtered.map(cmd => `\`${cmd.name}\``).sort().join(' '), false);
-			}
 
 			return channel.send(embed);
 		}
