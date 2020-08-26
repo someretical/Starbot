@@ -34,6 +34,10 @@ module.exports = class TagList extends StarbotCommand {
 			return channel.embed('Please provide a valid page!');
 		}
 
+		if (page > Math.ceil(tags.size / 12)) {
+			return channel.embed('The page number you provided is too large.');
+		}
+
 		const paged = Array.from(tags.values()).slice((page - 1) * 12, page * 12);
 		const start = ((page - 1) * 12) + 1;
 		const end = page * 12 > tags.length ? tags.length : page * 12;
@@ -42,7 +46,7 @@ module.exports = class TagList extends StarbotCommand {
 			.setTitle(`${guild.name} tags`)
 			.setDescription(`Showing tags ${start} to ${end} of ${tags.length}`);
 
-		paged.forEach(tag => embed.addField(tag.name, `Created by <@${tag.creator_id}>`, true));
+		paged.map(tag => embed.addField(tag.name, `Created by <@${tag.creator_id}>`, true));
 
 		return channel.send(embed);
 	}
