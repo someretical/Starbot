@@ -47,42 +47,31 @@ module.exports = Discord.Structures.extend('Guild', Guild => {
 			this.client.db.cache.Guild.set(this.id, guild);
 		}
 
-		// Returns promise
 		delete() {
+			const { cache, models } = this.client.db;
+
 			return this.queue(() => this.client.sequelize.transaction(async t => {
-				await this.client.db.models.Ignore.destroy({
+				await models.Ignore.destroy({
 					where: { guild_id: this.id },
-				}, {
-					transaction: t,
-				});
-				this.client.db.cache.Ignore.forEach(ignore => {
-					if (ignore.guild_id === this.id) this.client.db.cache.Ignore.delete(ignore.user_id + this.id);
-				});
+				}, { transaction: t });
+				cache.Ignore.map(ignore =>
+					ignore.guild_id === this.id ? cache.Ignore.delete(ignore.user_id + this.id) : undefined,
+				);
 
-				await this.client.db.models.Star.destroy({
+				await models.Star.destroy({
 					where: { guild_id: this.id },
-				}, {
-					transaction: t,
-				});
-				this.client.db.cache.Star.forEach(star => {
-					if (star.guild_id === this.id) this.client.db.cache.Star.delete(star.message_id);
-				});
+				}, { transaction: t });
+				cache.Star.map(star => star.guild_id === this.id ? cache.Star.delete(star.message_id) : undefined);
 
-				await this.client.db.models.Tag.destroy({
+				await models.Tag.destroy({
 					where: { guild_id: this.id },
-				}, {
-					transaction: t,
-				});
-				this.client.db.cache.Tag.forEach(tag => {
-					if (tag.guild_id === this.id) this.client.db.cache.Tag.delete(tag.guild_id + tag.name);
-				});
+				}, { transaction: t });
+				cache.Tag.map(tag => tag.guild_id === this.id ? cache.Tag.delete(tag.guild_id + tag.name) : undefined);
 
-				await this.client.db.models.Guild.destroy({
+				await models.Guild.destroy({
 					where: { id: this.id },
-				}, {
-					transaction: t,
-				});
-				this.client.db.cache.Guild.delete(this.id);
+				}, { transaction: t });
+				cache.Guild.delete(this.id);
 			}));
 		}
 
