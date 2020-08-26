@@ -27,41 +27,18 @@ module.exports = class UnblockUser extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { client, args, author, channel, guild } = message;
-		const owner = client.isOwner(author.id);
-		const user_id = matchUsers(args[0])[0];
-		const ignored = guild.ignores.get(user_id + guild.id);
-		let reason, global_ = false;
+		const { client, args, channel, guild } = message;
+		const ignored = guild.ignores.get(matchUsers(args[0])[0] + guild.id);
 
 		if (!ignored) {
-			channel.embed(`<@${user_id}> is not blocked!`);
+			channel.embed(`<@${ignored.user_id}> is not blocked!`);
 			return;
 		}
 
-		if (/^-(?:g|-global)$/i.test(args[1]) && owner) {
-			reason = 'None';
-			global_ = true;
-		} else {
-			reason = args[1] || 'None';
-		}
+		await guild.queue(ignored.destroy);
 
-		if (reason.length > 256) {
-			channel.embed('Please make sure your reason is below 256 characters long.');
-			return;
-		}
+		client.db.cache.Ignore.delete(ignored.user_id + guild.id);
 
-		if (global_) {
-			await ignored.destroy();
-
-			client.db.cache.GlobalIgnore.delete(user_id);
-
-			await channel.embed(`<@${user_id}> has been globally unblocked. Reason: ${reason}`);
-		} else {
-			await guild.queue(ignored.destroy);
-
-			client.db.cache.Ignore.delete(user_id + guild.id);
-
-			await channel.embed(`<@${user_id}> has been unblocked. Reason: ${reason}`);
-		}
+		await channel.embed(`<@${ignored.user_id}> has been unblocked.`);
 	}
 };
