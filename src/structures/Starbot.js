@@ -15,6 +15,7 @@ class Starbot extends Discord.Client {
 
 		this.commands = new Discord.Collection();
 		this.aliases = new Discord.Collection();
+		this.commandGroups = [];
 		this.sequelize = StarbotDatabase.db;
 		this.prefix = process.env.PREFIX;
 		this.embedColour = process.env.EMBED_COLOUR;
@@ -78,8 +79,10 @@ class Starbot extends Discord.Client {
 	loadCommands() {
 		try {
 			let commandCount = 0;
+			let groups = fs.readdirSync('./src/commands/');
 
-			let groups = fs.readdirSync('./src/commands/')
+			this.commandGroups = groups;
+			groups = groups
 				.map(name => `./src/commands/${name}/`)
 				.filter(dir => fs.lstatSync(dir).isDirectory());
 
