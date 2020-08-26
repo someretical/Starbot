@@ -45,6 +45,45 @@ module.exports = Discord.Structures.extend('User', User => {
 
 			this.client.db.cache.User.set(this.id, upserted);
 		}
+
+		purgeData() {
+			const { cache, models } = this.client.db;
+
+			return this.queue(() => this.client.sequelize.transaction(async t => {
+				await models.GlobalThrottle.destroy({
+					where: { user_id: this.id },
+				}, { transaction: t });
+				cache.GlobalThrottle.map(throttle =>
+					throttle.user_id === this.id ? cache.GlobalThrottle.delete(this.id + throttle.command) : undefined,
+				);
+
+				await models.Ignore.destroy({
+					where: { user_id: this.id },
+				}, { transaction: t });
+				cache.Ignore.map(ignore =>
+					ignore.user_id === this.id ? cache.Ignore.delete(this.id + ignore.guild_id) : undefined,
+				);
+
+				await models.Star.destroy({
+					where: { author_id: this.id },
+				}, { transaction: t });
+				cache.Star.map(star => star.author_id === this.id ? cache.Star.delete(star.message_id) : undefined);
+
+				await models.Tag.destroy({
+					where: { creator_id: this.id },
+				}, { transaction: t });
+				cache.Tag.map(tag => tag.creator_id === this.id ? cache.Tag.delete(tag.guild_id + tag.name) : undefined);
+
+				const [updatedUser] = await models.User.upsert({
+					id: this.id,
+					username: this.username,
+					discriminator: this.discriminator,
+					coins: 0,
+					reputation: 0,
+				});
+				cache.User.set(this.id, updatedUser);
+			}));
+		}
 	}
 
 	return StarbotUser;
