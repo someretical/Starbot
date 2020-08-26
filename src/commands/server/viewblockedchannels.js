@@ -46,9 +46,9 @@ module.exports = class ViewBlockedChannels extends StarbotCommand {
 		const embed = client.embed(null, true)
 			.setTitle(`${guild.name} ignored channels`)
 			.setDescription(stripIndents`
-        Showing channels ${start} to ${end} of ${channels.length}
-        ${paged.map(id => `<#${id}>`).join(' | ')}
-      `);
+				Showing channels ${start} to ${end} of ${channels.length}
+				${paged.map(id => `<#${id}>`).join(' | ')}
+			`);
 
 		return channel.send(embed);
 	}
