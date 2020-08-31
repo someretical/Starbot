@@ -122,5 +122,6 @@ module.exports = class OptOut extends StarbotCommand {
 		});
 
 		return channel.awaiting.delete(author.id);
+		return undefined;
 	}
 };
