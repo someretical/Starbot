@@ -34,9 +34,9 @@ module.exports = class BlockUser extends StarbotCommand {
 
 	async run(message) {
 		const { client, args, author, channel, guild } = message;
-		const owner = client.isOwner(author.id);
 		const user_id = matchUsers(args[0])[0];
-		let user, reason, global_ = false;
+		const reason = args[1] || 'None';
+		let user;
 
 		try {
 			user = await client.users.fetch(user_id);
@@ -56,42 +56,20 @@ module.exports = class BlockUser extends StarbotCommand {
 			return;
 		}
 
-		if (/^-(?:g|-global)$/i.test(args[1]) && owner) {
-			reason = 'None';
-			global_ = true;
-		} else if (/^-(?:g|-global)$/i.test(args[2]) && owner) {
-			reason = args[1] || 'None';
-			global_ = true;
-		} else {
-			reason = args[1] || 'None';
-		}
-
 		if (reason.length > 256) {
 			channel.embed('Please make sure your reason is below 256 characters long.');
 			return;
 		}
 
-		if (global_) {
-			const [record] = await user.queue(() => client.db.models.GlobalIgnore.upsert({
-				user_id: user_id,
-				executor_id: author.id,
-				reason: reason,
-			}));
+		const [record] = await guild.queue(() => client.db.models.Ignore.upsert({
+			user_id: user_id,
+			guild_id: guild.id,
+			executor_id: author.id,
+			reason: reason,
+		}));
 
-			client.db.cache.GlobalIgnore.set(user_id, record);
+		client.db.cache.Ignore.set(user_id + guild.id, record);
 
-			await channel.embed(`${user.toString()} has been globally blocked. Reason: ${reason}`);
-		} else {
-			const [record] = await guild.queue(() => client.db.models.Ignore.upsert({
-				user_id: user_id,
-				guild_id: guild.id,
-				executor_id: author.id,
-				reason: reason,
-			}));
-
-			client.db.cache.Ignore.set(user_id + guild.id, record);
-
-			await channel.embed(`${user.toString()} has been blocked. Reason: ${reason}`);
-		}
+		await channel.embed(`${user.toString()} has been blocked. Reason: ${reason}`);
 	}
 };

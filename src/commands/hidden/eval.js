@@ -11,7 +11,7 @@ module.exports = class Eval extends StarbotCommand {
 		super(client, {
 			name: 'eval',
 			description: 'evaluate Javascript',
-			group: 'utility',
+			group: 'hidden',
 			usage: '<expression>',
 			args: [{
 				name: '<expression>',
