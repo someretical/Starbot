@@ -1,15 +1,12 @@
 'use strict';
 
-const path = require('path');
 const { Collection } = require('discord.js');
-const moment = require('moment');
 const Logger = require('../util/Logger.js');
-const StarbotQueue = require('./StarbotQueue.js');
 
 class StarbotCommand {
 	constructor(client, info) {
 		this.client = client;
-		this.path = path.resolve(`./src/commands/${this.group}/${this.name}.js`);
+		this.path = __filename;
 		this.name = info.name;
 		this.description = info.description;
 		this.group = info.group;
@@ -21,20 +18,15 @@ class StarbotCommand {
 		this.userPermissions = info.userPermissions;
 		this.clientPermissions = [];
 		this.throttleDuration = info.throttle;
-		this.queues = new Collection();
 		this.throttles = new Collection();
 	}
 
 	reload() {
-		try {
-			delete require.cache[this.path];
+		delete require.cache[this.path];
 
-			this.client.commands.set(this.name, require(this.path));
+		this.client.commands.set(this.name, require(this.path));
 
-			return Logger.info(`Reloaded ${this.name} command`);
-		} catch (err) {
-			return err;
-		}
+		Logger.info(`Reloaded ${this.name} command`);
 	}
 
 	unload() {
@@ -47,80 +39,48 @@ class StarbotCommand {
 		Logger.info(`Unloaded ${this.name} command`);
 	}
 
-	queue(key, promiseFunction) {
-		let queue = this.queues.get(key);
+	async checkThrottle(message, command = '') {
+		const { author, guild } = message;
 
-		if (!queue) {
-			this.queues.set(key, new StarbotQueue());
+		if (command) {
+			const user = await this.client.db.models.User.findByPk(author.id);
+			const endsAt = user.throttles.command;
 
-			queue = this.queues.get(key);
+			if (!endsAt) return undefined;
+			if (endsAt > Date.now()) return endsAt;
+
+			return this.client.db.models.User.q.add(author.id, user.destroy);
 		}
 
-		return new Promise((resolve, reject) => {
-			queue.add(() => promiseFunction().then(value => {
-				if (!queue.length) this.queues.delete(key);
-
-				resolve(value);
-			}).catch(err => {
-				reject(err);
-
-				throw err;
-			}));
-		});
-	}
-
-	checkThrottle(message, command = '') {
-		const { client, author, guild } = message;
-
-		if (guild && command) {
-			const throttle = client.db.cache.GlobalThrottle.get(author.id + command);
-			if (throttle) {
-				const now = Date.now();
-				const endsAt = moment(throttle.endsAt).valueOf();
-
-				if (endsAt > now) {
-					return endsAt;
-				} else {
-					this.queue(author.id + command, () => throttle.destroy());
-				}
-			}
-		}
-
-		const throttle = this.throttles.get(guild ? author.id + guild.id + this.name : author.id + this.name);
-		if (throttle) return throttle.endsAt;
-
-		return undefined;
-	}
-
-	async globalThrottle(message, command, duration) {
-		const { client, author } = message;
-		const now = Date.now();
-		const [record] = await this.queue(author.id + command, () => client.db.models.GlobalThrottle.upsert({
-			user_id: author.id,
-			command: command,
-			endsAt: now + duration,
-		}));
-
-		client.db.cache.GlobalThrottle.set(author.id + command, record);
+		const throttle = this.throttles.get(guild ? author.id + guild.id : author.id);
+		return throttle ? throttle.endsAt : undefined;
 	}
 
 	throttle(message) {
-		const { client, author, guild } = message;
-		if (client.owners.includes(author.id) || this.throttleDuration === 0) return;
+		const { author, guild } = message;
+		if (this.client.owners.includes(author.id) || this.throttleDuration === 0) return;
 
-		const key = guild ? author.id + guild.id + this.name : author.id + this.name;
+		const key = guild ? author.id + guild.id : author.id;
 
 		let throttle = this.throttles.get(key);
 		if (!throttle) {
 			throttle = {
 				endsAt: Date.now() + this.throttleDuration,
-				timeout: client.setTimeout(() => {
+				timeout: setTimeout(() => {
 					this.throttles.delete(key);
 				}, this.throttleDuration),
 			};
 
 			this.throttles.set(key, throttle);
 		}
+	}
+
+	async customThrottle(message, name, duration) {
+		const user = await this.client.db.models.User.findByPk(message.author.id);
+
+		user.throttles.name = Date.now() + duration;
+
+		return this.client.db.models.User.q.add(message.author.id, user.save);
 	}
 }
 

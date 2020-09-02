@@ -11,8 +11,10 @@ module.exports = Discord.Structures.extend('TextChannel', TextChannel => {
 			this.awaiting = new Set();
 		}
 
-		get ignored() {
-			return JSON.parse(this.guild.settings.ignoredChannels).includes(this.id);
+		async ignored() {
+			const Guild = await this.client.db.models.Guild.findByPk(this.guild.id);
+
+			return Guild.ignoredChannels.includes(this.id);
 		}
 
 		embed(text) {
