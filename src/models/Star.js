@@ -1,41 +1,48 @@
 'use strict';
 
-const Sequelize = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
 const { db } = require('../structures/StarbotDatabase.js');
+const queue = new (require('../structures/StarbotQueueManager.js'))();
 const Guild = require('./Guild.js');
 const User = require('./User.js');
 
-const Star = db.define('Star', {
+class Star extends Model {
+	static get q() {
+		return queue;
+	}
+}
+
+Star.init({
 	message_id: {
-		type: Sequelize.STRING,
+		type: DataTypes.STRING,
 		primaryKey: true,
 		allowNull: false,
 	},
 	author_id: {
-		type: Sequelize.STRING,
+		type: DataTypes.STRING,
 		allowNull: false,
 	},
 	channel_id: {
-		type: Sequelize.STRING,
+		type: DataTypes.STRING,
 		allowNull: false,
 	},
 	guild_id: {
-		type: Sequelize.STRING,
+		type: DataTypes.STRING,
 		allowNull: false,
 	},
 	botMessage_id: {
-		type: Sequelize.STRING,
+		type: DataTypes.STRING,
 		defaultValue: null,
 	},
 	reactors: {
-		type: Sequelize.TEXT,
-		defaultValue: '[]',
+		type: DataTypes.JSON,
+		defaultValue: [],
 	},
 	cmdReactors: {
-		type: Sequelize.TEXT,
-		defaultValue: '[]',
+		type: DataTypes.JSON,
+		defaultValue: [],
 	},
-});
+}, { db });
 
 Guild.hasMany(Star, { foreignKey: 'guild_id' });
 User.hasMany(Star, { foreignKey: 'author_id' });

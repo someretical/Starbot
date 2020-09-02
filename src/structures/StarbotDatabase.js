@@ -31,35 +31,25 @@ class StarbotDatabase {
 				continue;
 			}
 
+			const force = process.argv.includes('--force') || process.argv.includes('-f');
+
 			// eslint-disable-next-line no-await-in-loop
-			await require(`${modelsPath}/${file}`).sync();
+			await require(`${modelsPath}/${file}`).sync({ force });
 		}
 	}
 
 	static async authenticate() {
 		try {
-			await StarbotDatabase.db.authenticate();
+			await sequelize.authenticate();
 			Logger.info('Successfully authenticated with database');
 
-			try {
-				await StarbotDatabase.loadModels();
-				Logger.info('Successing loaded models');
-
-				const force = process.argv.includes('--force') || process.argv.includes('-f');
-
-				if (force) {
-					await StarbotDatabase.db.sync({ force });
-					Logger.info(`${force ? 'Forcibly s' : 'S'}ynced database`);
-				}
-			} catch (err) {
-				Logger.err(err, 'Failed to load models');
-				process.exit();
-			}
+			await this.loadModels();
+			Logger.info('Successfully loaded models');
 		} catch (err) {
 			Logger.err(err, 'Failed to authenticate with database');
 			Logger.info('Attempting to connect again in 5 seconds...');
 
-			setTimeout(StarbotDatabase.authenticate, 5000);
+			setTimeout(this.authenticate, 5000);
 		}
 	}
 }

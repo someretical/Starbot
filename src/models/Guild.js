@@ -1,39 +1,53 @@
 'use strict';
 
-const Sequelize = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
 const { db } = require('../structures/StarbotDatabase.js');
+const queue = new (require('../structures/StarbotQueueManager.js'))();
 
-const Guild = db.define('Guild', {
+class Guild extends Model {
+	static get q() {
+		return queue;
+	}
+}
+
+Guild.init({
 	id: {
-		type: Sequelize.STRING,
+		type: DataTypes.STRING,
 		primaryKey: true,
 		allowNull: false,
 	},
 	prefix: {
-		type: Sequelize.STRING,
+		type: DataTypes.STRING,
 		defaultValue: process.env.PREFIX,
 	},
 	starboard_id: {
-		type: Sequelize.STRING,
-		allowNull: true,
+		type: DataTypes.STRING,
 		defaultValue: null,
 	},
 	starboardEnabled: {
-		type: Sequelize.BOOLEAN,
+		type: DataTypes.BOOLEAN,
 		defaultValue: false,
 	},
 	reactionThreshold: {
-		type: Sequelize.INTEGER,
+		type: DataTypes.INTEGER,
 		defaultValue: 1,
 	},
 	tagsEnabled: {
-		type: Sequelize.BOOLEAN,
+		type: DataTypes.BOOLEAN,
 		defaultValue: false,
 	},
-	ignoredChannels: {
-		type: Sequelize.TEXT,
-		defaultValue: '[]',
+	ignoredUsers: {
+		type: DataTypes.JSON,
+		defaultValue: [],
 	},
-});
+	ignoredRoles: {
+		type: DataTypes.JSON,
+		defaultValue: [],
+	},
+	ignoredChannels: {
+		type: DataTypes.JSON,
+		defaultValue: [],
+	},
+}, { db });
 
 module.exports = Guild;

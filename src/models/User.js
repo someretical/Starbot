@@ -1,30 +1,33 @@
 'use strict';
 
+const { DataTypes, Model } = require('sequelize');
 const { db } = require('../structures/StarbotDatabase.js');
-const Sequelize = require('sequelize');
+const queue = new (require('../structures/StarbotQueueManager.js'))();
 
-const User = db.define('User', {
+class User extends Model {
+	static get q() {
+		return queue;
+	}
+}
+
+User.init({
 	id: {
-		type: Sequelize.STRING,
+		type: DataTypes.STRING,
 		primaryKey: true,
 		allowNull: false,
 	},
-	username: {
-		type: Sequelize.STRING,
-		allowNull: false,
-	},
-	discriminator: {
-		type: Sequelize.CHAR(4),
-		allowNull: false,
-	},
 	coins: {
-		type: Sequelize.INTEGER,
+		type: DataTypes.INTEGER,
 		defaultValue: 100,
 	},
 	reputation: {
-		type: Sequelize.INTEGER,
+		type: DataTypes.INTEGER,
 		defaultValue: 0,
 	},
-});
+	throttles: {
+		type: DataTypes.JSON,
+		defaultValue: {},
+	},
+}, { db });
 
 module.exports = User;

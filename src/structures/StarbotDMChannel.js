@@ -11,8 +11,10 @@ module.exports = Discord.Structures.extend('DMChannel', DMChannel => {
 			this.awaiting = new Set();
 		}
 
-		get ignored() {
-			return this.client.db.cache.GlobalIgnore.has(this.recipient.id);
+		async ignored() {
+			const OptOut = await this.client.db.models.OptOut.findByPk(this.recipient.id);
+
+			return Boolean(OptOut);
 		}
 
 		embed(text, fancy = false) {
