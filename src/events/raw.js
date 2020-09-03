@@ -2,7 +2,7 @@
 
 const { capitaliseFirstLetter } = require('../util/Util.js');
 
-const events = [
+const EVENTS = [
 	'MESSAGE_UPDATE',
 	'MESSAGE_DELETE',
 	'MESSAGE_DELETE_BULK',
@@ -14,15 +14,7 @@ const events = [
 
 module.exports = (client, packet) => {
 	const { t: eventName, d: data } = packet;
-	if (!data || !client.ready) return undefined;
-
-	if (eventName === 'USER_UPDATE') {
-		return client.emit('userUpdateRaw', {
-			...data,
-		});
-	}
-
-	if (!events.includes(eventName)) return undefined;
+	if (!data || !client.ready || !EVENTS.includes(eventName)) return undefined;
 
 	const guild = client.guilds.cache.get(data.guild_id);
 	if (!data.guild_id || !guild || !guild.available) return undefined;
