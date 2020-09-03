@@ -34,13 +34,9 @@ Star.init({
 		type: DataTypes.STRING,
 		defaultValue: null,
 	},
-	reactors: {
+	reactions: {
 		type: DataTypes.JSON,
-		defaultValue: [],
-	},
-	cmdReactors: {
-		type: DataTypes.JSON,
-		defaultValue: [],
+		defaultValue: {},
 	},
 }, { db });
 
