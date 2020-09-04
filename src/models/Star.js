@@ -3,12 +3,17 @@
 const { DataTypes, Model } = require('sequelize');
 const { db } = require('../structures/StarbotDatabase.js');
 const queue = new (require('../structures/StarbotQueueManager.js'))();
+const cache = new (require('discord.js').Collection)();
 const Guild = require('./Guild.js');
 const User = require('./User.js');
 
 class Star extends Model {
 	static get q() {
 		return queue;
+	}
+
+	static get cache() {
+		return cache;
 	}
 }
 
@@ -38,7 +43,33 @@ Star.init({
 		type: DataTypes.JSON,
 		defaultValue: {},
 	},
-}, { db });
+}, {
+	hooks: {
+		// Emitted on model class methods with find keyword
+		afterFind: val => {
+			if (!val) return;
+
+			if (Array.isArray(val) && val.length) {
+				val.map(instance =>
+					!Star.cache.has(instance.message_id) ? Star.cache.set(instance.message_id, instance) : undefined,
+				);
+			} else if (!Star.cache.has(val.message_id)) {
+				Star.cache.set(val.message_id, val);
+			}
+		},
+
+		// Emitted on model instances that are destroyed
+		// Model classes require custom handling for destructive actions such as destroy() and bulkDelete()
+		afterDestroy: instance => Star.cache.delete(instance.message_id),
+
+		// Emitted on model instances that have save() or update() called on them
+		afterSave: instance => Star.cache.set(instance.message_id, instance),
+
+		// Emitted on model class method upsert()
+		afterUpsert: ([instance]) => Star.cache.set(instance.message_id, instance),
+	},
+	sequelize: db,
+});
 
 Guild.hasMany(Star, { foreignKey: 'guild_id' });
 User.hasMany(Star, { foreignKey: 'author_id' });
