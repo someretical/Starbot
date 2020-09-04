@@ -79,9 +79,9 @@ Tag.init({
 	sequelize: db,
 });
 
-Guild.hasMany(Tag, { foreignKey: 'guild_id' });
+Guild.hasMany(Tag, { foreignKey: 'Tag_id' });
 User.hasMany(Tag, { foreignKey: 'creator_id' });
 Tag.belongsTo(User, { foreignKey: 'creator_id' });
-Tag.belongsTo(Guild, { foreignKey: 'guild_id' });
+Tag.belongsTo(Guild, { foreignKey: 'Tag_id' });
 
 module.exports = Tag;
