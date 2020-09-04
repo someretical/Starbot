@@ -8,17 +8,12 @@ module.exports = Discord.Structures.extend('Message', Message => {
 		constructor(...args) {
 			super(...args);
 
+			this._guild = undefined;
 			this.prefix = undefined;
 			this.raw = { command: undefined, args: undefined };
 			this.command = undefined;
 			this.args = [];
-			this.tag = undefined;
-		}
-
-		get ignored() {
-			return this.channel.awaiting.has(this.author.id) || this.author.ignored ||
-				(this.guild && this.channel.ignored) ||
-				(this.guild && this.guild.ignores.has(this.author.id + this.guild.id));
+			this.tag = false;
 		}
 
 		get DM() {
@@ -35,27 +30,20 @@ module.exports = Discord.Structures.extend('Message', Message => {
 			return missingPerms;
 		}
 
-		async sendTag() {
-			if (!this.guild.settings.tagsEnabled) return;
-
-			const response = this.tag.response.replace(/<guild_name>/ig, this.guild.name)
+		async sendTag(tag) {
+			const response = tag.response.replace(/<guild_name>/ig, this.guild.name)
 				.replace(/<channel>/ig, this.channel.toString())
 				.replace(/<author>/ig, this.author.toString());
 
 			await this.channel.send(response);
 
-			const upsertObj = this.tag.toJSON();
-			upsertObj.uses++;
-
-			const [updatedTag] = await this.guild.queue(() => this.client.db.models.Tag.upsert(upsertObj));
-
-			this.client.db.cache.Tag.set(this.guild.id + this.tag.name, updatedTag);
+			tag.uses++;
+			this.client.db.models.Tag.q.add(tag.id, tag.save);
 		}
 
-		parse() {
-			const prefix = this.guild && this.guild.settings.prefix ?
-				sanitise(this.guild.settings.prefix, true) :
-				this.client.prefix;
+		async parse() {
+			this._guild = await this.guild.findOrCreate();
+			const prefix = this.guild && this._guild.prefix ? sanitise(this._guild.prefix, true) : this.client.prefix;
 			const prefixPattern = new RegExp(`^(<@!?${this.client.user.id}>\\s+|${prefix})(\\S+)`);
 
 			const matched = this.content.match(prefixPattern);
@@ -64,8 +52,17 @@ module.exports = Discord.Structures.extend('Message', Message => {
 				this.raw.command = matched[2];
 			}
 
-			if (this.guild) {
-				this.tag = this.guild.tags.get(this.guild.id + this.raw.command.toLowerCase());
+			if (this.guild && this._guild.tagsEnabled) {
+				const tag = await this.client.db.models.Tag.findOne({
+					where: { guild_id: this.guild.id, name: this.raw.command.toLowerCase() },
+				});
+
+				if (tag) {
+					await this.sendTag(tag);
+					this.tag = true;
+
+					return;
+				}
 			}
 
 			let cleanedCmdName = this.raw.command.toLowerCase().trim();
