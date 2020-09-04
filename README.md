@@ -6,8 +6,8 @@ This is the repository for the Starbot Discord bot.
 # bot token
 TOKEN=
 USER_DIRECTORY=
-PREFIX=
-EMBED_COLOUR=
+PREFIX=/
+EMBED_COLOUR=PURPLE
 
 # sequelize options
 HOST=
@@ -19,5 +19,5 @@ DIALECT=
 STORAGE=
 
 # stringified JSON array
-OWNERS=
+OWNERS=[]
 ```
