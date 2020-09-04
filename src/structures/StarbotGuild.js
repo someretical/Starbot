@@ -12,9 +12,9 @@ module.exports = Discord.Structures.extend('Guild', Guild => {
 		}
 
 		async findOrCreate() {
-			const [_Guild] = await this.client.db.models.Guild.findOrCreate({ where: { id: this.id } });
+			const [_guild] = await this.client.db.models.Guild.findOrCreate({ where: { id: this.id } });
 
-			return _Guild;
+			return _guild;
 		}
 
 		delete() {

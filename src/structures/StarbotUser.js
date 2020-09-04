@@ -18,9 +18,9 @@ module.exports = Discord.Structures.extend('User', User => {
 		}
 
 		async findOrCreate() {
-			const [_User] = await this.client.db.models.Guild.findOrCreate({ where: { id: this.id } });
+			const [_user] = await this.client.db.models.Guild.findOrCreate({ where: { id: this.id } });
 
-			return _User;
+			return _user;
 		}
 
 		purgeData() {
