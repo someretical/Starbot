@@ -3,224 +3,208 @@
 const path = require('path');
 const Discord = require('discord.js');
 const moment = require('moment');
-const StarbotQueue = require('./StarbotQueue.js');
 
 class Starboard {
 	constructor(guild) {
 		this.client = guild.client;
 		this.guild = guild;
-		this.queues = new Discord.Collection();
+		this.channel = undefined;
+		this._guild = undefined;
 	}
 
-	get channel() {
-		return this.guild.channels.cache.get(this.guild.settings.starboard_id);
-	}
+	getStars(id = undefined) {
+		if (typeof ids === 'string') {
+			return this.client.db.models.Star.findByPk(id);
+		}
 
-	get stars() {
 		return this.client.db.models.Star.findAll({ where: { guild_id: this.guild.id } });
 	}
 
-	async getStarModel(message_id) {
-		let star = this.client.db.cache.Star.get(message_id);
-		if (!star) {
-			star = await this.client.db.models.Star.findByPk(message_id);
-			if (!star) return undefined;
-
-			this.client.db.cache.Star.set(message_id, star);
-		}
-
-		return star;
-	}
-
-	queue(message_id, promiseFunction) {
-		let queue = this.queues.get(message_id);
-		if (!queue) {
-			this.queues.set(message_id, new StarbotQueue());
-
-			queue = this.queues.get(message_id);
-		}
-
-		return new Promise((resolve, reject) => {
-			queue.add(() => promiseFunction().then(value => {
-				if (!queue.length) this.queues.delete(message_id);
-
-				resolve(value);
-			}).catch(err => {
-				reject(err);
-
-				throw err;
-			}));
-		});
-	}
-
-	fixStar(message) {
-		return this.queue(message.id, () => this._fixStar(message));
-	}
-
-	async _fixStar(message) {
-		const ignored = this.guild.ignores;
-		const globalIgnored = this.client.db.cache.GlobalIgnore;
-		const reactObj = { reactors: [], cmdReactors: [] };
-
-		const star = await this.getStarModel(message.id);
-		if (star) {
-			reactObj.cmdReactors = JSON.parse(star.cmdReactors)
-				.filter(id => !globalIgnored.has(id) && !ignored.has(id + this.guild.id));
-		}
-
-		const starReaction = message.reactions.cache.get('⭐');
-		if (starReaction) {
-			const allReactors = await Starboard.fetchAllReactors(starReaction);
-
-			reactObj.reactors = allReactors
-				.filter(reactor =>
-					!reactObj.cmdReactors.includes(reactor.id) &&
-					!reactor.ignored &&
-					!ignored.has(reactor.id + this.guild.id),
-				).keyArray();
-		}
-
-		reactObj.combinedLength = reactObj.reactors.length + reactObj.cmdReactors.length;
-		if (reactObj.combinedLength === 0) {
-			if (star) return this._destroyStar(star);
-
-			return 1;
-		}
-
-		return this._updateStar(message, reactObj, star);
-	}
-
-	addStar(message, user_id, cmd = false) {
-		return this.queue(message.id, () => this._addStar(message, user_id, cmd));
-	}
-
-	async _addStar(message, user_id, cmd) {
-		const star = await this.getStarModel(message.id);
-		const reactObj = { reactors: [], cmdReactors: [] };
-
-		if (star) {
-			const parsed = cmd ? JSON.parse(star.cmdReactors) : JSON.parse(star.reactors);
-
-			if (!cmd) {
-				const cmdReactors = JSON.parse(star.cmdReactors);
-				if (cmdReactors.includes(user_id)) return;
-			}
-
-			parsed.push(user_id);
-
-			reactObj.cmdReactors = cmd ? parsed : JSON.parse(star.cmdReactors);
-			reactObj.reactors = cmd ? JSON.parse(star.reactors) : parsed;
+	async _checkValidity(message, user_id = undefined, cmd = false) {
+		// Cmd parameter makes sure repeated calls are not made to the database
+		// As commands would have already checked user_id for discrepencies
+		if (!this._guild) {
+			this._guild = await this.guild.findOrCreate();
 		} else {
-			if (cmd) reactObj.cmdReactors.push(user_id);
-
-			const starReaction = message.reactions.cache.get('⭐');
-			if (starReaction) {
-				const ignored = this.guild.ignores;
-				const allReactors = await Starboard.fetchAllReactors(starReaction);
-
-				reactObj.reactors = allReactors
-					.filter(reactor =>
-						!reactObj.cmdReactors.includes(reactor.id) &&
-						!reactor.ignored &&
-						!ignored.has(reactor.id + this.guild.id),
-					).keyArray();
-			}
+			await this._guild.reload();
 		}
 
-		reactObj.combinedLength = reactObj.reactors.length + reactObj.cmdReactors.length;
-		await this._updateStar(message, reactObj, star);
+		this.channel = this.guild.channels.cache.get(this._guild.starboard_id);
+
+		// Check if message author has opted out
+		const _1 = await message.author.ignored();
+		// Check if channel is ignored in guild only as this cannot be run in a DM channel
+		const _2 = this._guild.ignoredChannels.includes(message.channel.id);
+
+		if (_1 || _2) return false;
+
+		if (user_id && !cmd) {
+			// Check if user_id has opted out
+			const _3 = await this.client.db.models.OptOut.findByPk(user_id);
+			const _4 = this._guild.ignoredUsers.includes(user_id);
+
+			let member;
+			try {
+				member = await this.guild.members.fetch(user_id);
+			// eslint-disable-next-line no-empty
+			} catch (err) {}
+			const _5 = member ? member.roles.cache.some(({ id }) => this._guild.ignoredRoles.includes(id)) : false;
+
+			if (_3 || _4 || _5) return false;
+		}
+
+		return true;
 	}
 
-	removeStar(message, user_id, cmd = false) {
-		return this.queue(message.id, () => this._removeStar(message, user_id, cmd));
-	}
+	async _addNewStar(message, user_id = undefined) {
+		const optedOut = (await this.client.db.models.OptOut.findAll()).map(o => o.user_id);
+		const reactions = { msg: [], cmd: [] };
 
-	async _removeStar(message, user_id, cmd) {
-		const star = await this.getStarModel(message.id);
-		const reactObj = { reactors: [], cmdReactors: [] };
+		// User_id only provided if adding star via command for first time
+		if (user_id) reactions.cmd.push(user_id);
 
-		if (star) {
-			const parsed = cmd ? JSON.parse(star.cmdReactors) : JSON.parse(star.reactors);
-			const index = parsed.indexOf(user_id);
+		const reaction = message.reactions.cache.get('⭐');
+		if (reaction) {
+			const reactors = await Starboard.fetchAllReactors(reaction);
 
-			if (index > -1) parsed.splice(index, 1);
-
-			reactObj.cmdReactors = cmd ? parsed : JSON.parse(star.cmdReactors);
-			reactObj.reactors = cmd ? JSON.parse(star.reactors) : parsed;
-		} else {
-			const starReaction = message.reactions.cache.get('⭐');
-			if (starReaction) {
-				const ignored = this.guild.ignores;
-				const allReactors = await Starboard.fetchAllReactors(starReaction);
-
-				reactObj.reactors = allReactors
-					.filter(reactor =>
-						!reactObj.cmdReactors.includes(reactor.id) &&
-						!reactor.ignored &&
-						!ignored.has(reactor.id + this.guild.id),
-					).keyArray();
-			}
+			reactors.map(({ id }) =>
+				!reactions.cmd.includes(id) && !this._guild.ignoredUsers.includes(id) && !optedOut.includes(id) ?
+					reactions.msg.push(id) :
+					undefined,
+			);
 		}
 
-		reactObj.combinedLength = reactObj.reactors.length + reactObj.cmdReactors.length;
-		if (reactObj.combinedLength === 0) {
-			if (star) return this._destroyStar(star);
-		}
+		if (reactions.msg.length + reactions.cmd.length === 0) return undefined;
 
-		return this._updateStar(message, reactObj, star);
-	}
-
-	async _updateStar(message, reactObj, star) {
-		const { reactionThreshold, starboardEnabled } = message.guild.settings;
-		const starboard = message.guild.starboard.channel;
-		let botMessage_id;
-
-		if (starboard && starboard.clientHasPermissions() && starboardEnabled) {
-			if (star) {
-				const botMessage = await starboard.messages.fetch(star.botMessage_id);
-				if (botMessage) botMessage_id = botMessage.id;
-			}
-
-			if (reactObj.combinedLength >= reactionThreshold) {
-				if (botMessage_id) {
-					await starboard.messages.cache
-						.get(botMessage_id)
-						.edit(Starboard.buildStarboardMessage(message, reactObj.combinedLength));
-				} else {
-					const { id } = await starboard.send(Starboard.buildStarboardMessage(message, reactObj.combinedLength));
-					botMessage_id = id;
-				}
-			} else if (botMessage_id) {
-				await starboard.messages.cache.get(botMessage_id).delete();
-			}
-		}
-
-		const [updatedStar] = await this.client.db.models.Star.upsert({
+		const [star] = await this.client.db.models.Star.upsert({
 			message_id: message.id,
 			author_id: message.author.id,
 			channel_id: message.channel.id,
 			guild_id: message.guild.id,
-			botMessage_id: botMessage_id,
-			reactors: JSON.stringify(reactObj.reactors),
-			cmdReactors: JSON.stringify(reactObj.cmdReactors),
+			botMessage_id: null,
+			reactions: reactions,
 		});
 
-		this.client.db.cache.Star.set(message.id, updatedStar);
+		return this._displayStar(message, star);
+	}
+
+	async _displayStar(message, star) {
+		let botMessage_id;
+		const reactions = star.reactions.msg.length + star.reactions.cmd.length;
+
+		if (this.channel && this._guild.starboardEnabled && reactions >= this._guild.reactionThreshold) {
+			const ignored = await this.channel.ignored();
+
+			if (!ignored && this.channel.clientHasPermissions()) {
+				botMessage_id = star.botMessage_id ? await this.channel.messages.fetch(star.botMessage_id) : undefined;
+
+				const send = async () => {
+					const { id } = await this.channel.send(Starboard.buildStarboardMessage(message, reactions));
+					return id;
+				};
+
+				try {
+					if (botMessage_id) {
+						await this.channel.messages.cache
+							.get(botMessage_id)
+							.edit(Starboard.buildStarboardMessage(message, reactions));
+					} else {
+						botMessage_id = await send();
+					}
+				} catch (err) {
+					botMessage_id = await send();
+				}
+			}
+		}
+
+		return star.save();
+	}
+
+	async addStar(message, user_id, cmd = false) {
+		const invalid = await this._checkValidity(message, user_id);
+		if (!invalid) return undefined;
+
+		return this.client.db.models.Star.q.add(message.id, () => this._addStar(message, user_id, cmd));
+	}
+
+	async _addStar(message, user_id, cmd) {
+		const star = await this.getStars(message.id);
+		if (!star) return this._addNewStar(message, cmd ? user_id : undefined);
+
+		if (star.reactions.msg.includes(user_id) || star.reactions.cmd.includes(user_id)) return undefined;
+		star.reactions[cmd ? 'cmd' : 'msg'].push(user_id);
+
+		return this._displayStar(message, star);
+	}
+
+	async removeStar(message, user_id, cmd) {
+		const invalid = await this._checkValidity(message, user_id);
+		if (!invalid) return undefined;
+
+		return this.client.db.models.Star.q.add(message.id, () => this._removeStar(message, user_id, cmd));
+	}
+
+	async _removeStar(message, user_id, cmd) {
+		const star = await this.getStars(message.id);
+		if (!star) return this._addNewStar(message);
+
+		const index = star.reactions[cmd ? 'cmd' : 'msg'].indexOf(user_id);
+		if (index === -1) return undefined;
+
+		star.reactions[cmd ? 'cmd' : 'msg'].splice(index, 1);
+
+		return star.reactions.cmd.length + star.reactions.msg.length === 0 ?
+			this._destroyStar(star) :
+			this._displayStar(message, star);
+	}
+
+	async fixStar(message) {
+		const invalid = await this._checkValidity(message);
+		if (!invalid) return undefined;
+
+		return this.client.db.models.Star.q.add(message.id, () => this._fixStar(message));
+	}
+
+	async _fixStar(message) {
+		const star = await this.getStars(message.id);
+		if (!star) return this._addNewStar(message);
+
+		const optedOut = (await this.client.db.models.OptOut.findAll()).map(o => o.user_id);
+		star.reactors.cmd = star.reactors.cmd.filter(id =>
+			!this._guild.ignoredUsers.includes(id) && !optedOut.includes(id),
+		);
+
+		const reaction = message.reactions.cache.get('⭐');
+		if (reaction) {
+			const reactors = await Starboard.fetchAllReactors(reaction);
+			star.reactors.msg = [];
+
+			reactors.map(({ id }) =>
+				!star.reactors.cmd.includes(id) &&
+				!this._guild.ignoredUsers.includes(id) &&
+				!optedOut.includes(id) ? star.reactions.msg.push(id) : undefined,
+			);
+		}
+
+		return star.reactions.cmd.length + star.reactions.msg.length === 0 ?
+			this._destroyStar(star) :
+			this._displayStar(message, star);
 	}
 
 	destroyStar(star) {
-		return this.queue(star.message_id, () => this._destroyStar(star));
+		return this.client.db.models.Star.q.add(star.message_id, () => this._destroyStar(star));
 	}
 
 	async _destroyStar(star) {
 		await star.destroy();
 
-		this.client.db.cache.Star.delete(star.message_id);
-
 		const starboard = this.channel;
 		if (starboard) {
-			const botMessage = await starboard.messages.fetch(star.botMessage_id);
-			if (botMessage) await botMessage.delete();
+			try {
+				const botMessage = await starboard.messages.fetch(star.botMessage_id);
+				if (botMessage) await botMessage.delete();
+			// eslint-disable-next-line no-empty
+			} catch (err) {}
 		}
 	}
 
