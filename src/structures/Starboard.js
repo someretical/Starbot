@@ -9,66 +9,64 @@ class Starboard {
 		this.client = guild.client;
 		this.guild = guild;
 		this.channel = undefined;
-		this._guild = undefined;
 	}
 
 	getStars(id = undefined) {
-		if (typeof ids === 'string') {
-			return this.client.db.models.Star.findByPk(id);
+		if (typeof id === 'string') {
+			return this.client.db.models.Star.cache.get(id);
 		}
 
-		return this.client.db.models.Star.findAll({ where: { guild_id: this.guild.id } });
+		return this.client.db.models.Star.cache.filter(star => star.guild_id === this.guild.id);
 	}
 
 	async _checkValidity(message, user_id = undefined, cmd = false) {
 		// Cmd parameter makes sure repeated calls are not made to the database
 		// As commands would have already checked user_id for discrepencies
-		if (!this._guild) {
-			this._guild = await this.guild.findOrCreate();
-		} else {
-			await this._guild.reload();
-		}
+		const _guild = await this.guild.findCreateFind();
 
-		this.channel = this.guild.channels.cache.get(this._guild.starboard_id);
+		this.channel = this.guild.channels.cache.get(_guild.starboard_id);
 
 		// Check if message author has opted out
-		const _1 = await message.author.ignored();
+		const _1 = message.author.ignored;
 		// Check if channel is ignored in guild only as this cannot be run in a DM channel
-		const _2 = this._guild.ignoredChannels.includes(message.channel.id);
+		const _2 = _guild.ignoredChannels.includes(message.channel.id);
 
 		if (_1 || _2) return false;
 
 		if (user_id && !cmd) {
 			// Check if user_id has opted out
-			const _3 = await this.client.db.models.OptOut.findByPk(user_id);
-			const _4 = this._guild.ignoredUsers.includes(user_id);
+			const _3 = this.client.db.models.OptOut.cache.has(user_id);
+			const _4 = _guild.ignoredUsers.includes(user_id);
+			const _5 = message.author.id === user_id && !this.client.isOwner(user_id);
 
 			let member;
 			try {
 				member = await this.guild.members.fetch(user_id);
 			// eslint-disable-next-line no-empty
 			} catch (err) {}
-			const _5 = member ? member.roles.cache.some(({ id }) => this._guild.ignoredRoles.includes(id)) : false;
+			const _6 = member ? member.roles.cache.some(({ id }) => _guild.ignoredRoles.includes(id)) : false;
 
-			if (_3 || _4 || _5) return false;
+			if (_3 || _4 || _5 || _6) return false;
 		}
 
 		return true;
 	}
 
 	async _addNewStar(message, user_id = undefined) {
-		const optedOut = (await this.client.db.models.OptOut.findAll()).map(o => o.user_id);
+		const _guild = await this.guild.findCreateFind();
+		const optedOut = this.client.db.models.OptOut.cache;
 		const reactions = { msg: [], cmd: [] };
 
 		// User_id only provided if adding star via command for first time
 		if (user_id) reactions.cmd.push(user_id);
 
+		// Reactions can be fetched from the message
 		const reaction = message.reactions.cache.get('⭐');
 		if (reaction) {
 			const reactors = await Starboard.fetchAllReactors(reaction);
 
 			reactors.map(({ id }) =>
-				!reactions.cmd.includes(id) && !this._guild.ignoredUsers.includes(id) && !optedOut.includes(id) ?
+				!reactions.cmd.includes(id) && !_guild.ignoredUsers.includes(id) && !optedOut.has(id) ?
 					reactions.msg.push(id) :
 					undefined,
 			);
@@ -89,35 +87,33 @@ class Starboard {
 	}
 
 	async _displayStar(message, star) {
-		let botMessage_id;
+		let botMessage;
 		const reactions = star.reactions.msg.length + star.reactions.cmd.length;
+		const _guild = await this.guild.findCreateFind();
 
-		if (this.channel && this._guild.starboardEnabled && reactions >= this._guild.reactionThreshold) {
+		if (this.channel && _guild.starboardEnabled && reactions >= _guild.reactionThreshold) {
 			const ignored = await this.channel.ignored();
 
 			if (!ignored && this.channel.clientHasPermissions()) {
-				botMessage_id = star.botMessage_id ? await this.channel.messages.fetch(star.botMessage_id) : undefined;
+				botMessage = star.botMessage_id ? await this.channel.messages.fetch(star.botMessage_id) : undefined;
 
-				const send = async () => {
-					const { id } = await this.channel.send(Starboard.buildStarboardMessage(message, reactions));
-					return id;
-				};
+				const send = () => this.channel.send(Starboard.buildStarboardMessage(message, reactions));
 
 				try {
-					if (botMessage_id) {
-						await this.channel.messages.cache
-							.get(botMessage_id)
+					if (botMessage) {
+						botMessage = await this.channel.messages.cache
+							.get(botMessage.id)
 							.edit(Starboard.buildStarboardMessage(message, reactions));
 					} else {
-						botMessage_id = await send();
+						botMessage = await send();
 					}
 				} catch (err) {
-					botMessage_id = await send();
+					botMessage = await send();
 				}
 			}
 		}
 
-		return star.save();
+		return star.update({ botMessage_id: botMessage ? botMessage.id : null });
 	}
 
 	async addStar(message, user_id, cmd = false) {
@@ -128,11 +124,15 @@ class Starboard {
 	}
 
 	async _addStar(message, user_id, cmd) {
-		const star = await this.getStars(message.id);
+		const star = this.getStars(message.id);
 		if (!star) return this._addNewStar(message, cmd ? user_id : undefined);
 
 		if (star.reactions.msg.includes(user_id) || star.reactions.cmd.includes(user_id)) return undefined;
-		star.reactions[cmd ? 'cmd' : 'msg'].push(user_id);
+
+		const _reactions = star.toJSON().reactions;
+		_reactions[cmd ? 'cmd' : 'msg'].push(user_id);
+
+		await star.update({ reactions: _reactions });
 
 		return this._displayStar(message, star);
 	}
@@ -145,17 +145,22 @@ class Starboard {
 	}
 
 	async _removeStar(message, user_id, cmd) {
-		const star = await this.getStars(message.id);
+		const star = this.getStars(message.id);
 		if (!star) return this._addNewStar(message);
 
 		const index = star.reactions[cmd ? 'cmd' : 'msg'].indexOf(user_id);
 		if (index === -1) return undefined;
 
-		star.reactions[cmd ? 'cmd' : 'msg'].splice(index, 1);
+		const _reactions = star.toJSON().reactions;
+		_reactions[cmd ? 'cmd' : 'msg'].splice(index, 1);
 
-		return star.reactions.cmd.length + star.reactions.msg.length === 0 ?
-			this._destroyStar(star) :
-			this._displayStar(message, star);
+		if (_reactions.cmd.length + _reactions.msg.length === 0) {
+			return this._destroyStar(star);
+		} else {
+			await star.update({ reactions: _reactions });
+
+			return this._displayStar(message, star);
+		}
 	}
 
 	async fixStar(message) {
@@ -166,29 +171,35 @@ class Starboard {
 	}
 
 	async _fixStar(message) {
-		const star = await this.getStars(message.id);
+		const star = this.getStars(message.id);
 		if (!star) return this._addNewStar(message);
+		const _reactions = star.toJSON().reactions;
 
-		const optedOut = (await this.client.db.models.OptOut.findAll()).map(o => o.user_id);
-		star.reactors.cmd = star.reactors.cmd.filter(id =>
-			!this._guild.ignoredUsers.includes(id) && !optedOut.includes(id),
+		const _guild = await this.guild.findCreateFind();
+		const optedOut = this.client.db.models.OptOut.cache;
+		_reactions.cmd = star.reactions.cmd.filter(id =>
+			!_guild.ignoredUsers.includes(id) && !optedOut.has(id),
 		);
 
 		const reaction = message.reactions.cache.get('⭐');
 		if (reaction) {
 			const reactors = await Starboard.fetchAllReactors(reaction);
-			star.reactors.msg = [];
+			_reactions.msg = [];
 
 			reactors.map(({ id }) =>
-				!star.reactors.cmd.includes(id) &&
-				!this._guild.ignoredUsers.includes(id) &&
-				!optedOut.includes(id) ? star.reactions.msg.push(id) : undefined,
+				!star.reactions.cmd.includes(id) &&
+				!_guild.ignoredUsers.includes(id) &&
+				!optedOut.has(id) ? _reactions.msg.push(id) : undefined,
 			);
 		}
 
-		return star.reactions.cmd.length + star.reactions.msg.length === 0 ?
-			this._destroyStar(star) :
-			this._displayStar(message, star);
+		if (_reactions.cmd.length + _reactions.msg.length === 0) {
+			return this._destroyStar(star);
+		} else {
+			await star.update({ reactions: _reactions });
+
+			return this._displayStar(message, star);
+		}
 	}
 
 	destroyStar(star) {
@@ -202,7 +213,7 @@ class Starboard {
 		if (starboard) {
 			try {
 				const botMessage = await starboard.messages.fetch(star.botMessage_id);
-				if (botMessage) await botMessage.delete();
+				if (botMessage) botMessage.delete();
 			// eslint-disable-next-line no-empty
 			} catch (err) {}
 		}
@@ -232,7 +243,7 @@ class Starboard {
 			.setAuthor(message.guild.name, message.guild.iconURL())
 			.setThumbnail(message.author.avatarURL())
 			.addField('Channel', `<#${message.channel.id}>\n[Jump to message](${message.url})`, true)
-			.setFooter(`${reactionCount} ${starEmoji} • ${createdAt}`);
+			.setFooter(`${message.pinned ? '📌 • ' : ''}${reactionCount} ${starEmoji} • ${createdAt}`);
 
 		const imageURL = Starboard.getImageAttachment(message);
 		if (imageURL) embed.setImage(imageURL);

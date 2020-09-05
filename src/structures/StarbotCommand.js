@@ -7,23 +7,23 @@ class StarbotCommand {
 	constructor(client, info) {
 		this.client = client;
 		this.path = __filename;
+		this.throttles = new Collection();
+
 		this.name = info.name;
 		this.description = info.description;
 		this.group = info.group;
 		this.usage = info.usage;
-		this.args = info.args;
-		this.aliases = info.aliases;
-		this.guildOnly = info.guildOnly;
-		this.ownerOnly = info.ownerOnly;
-		this.userPermissions = info.userPermissions;
-		this.clientPermissions = [];
-		this.throttleDuration = info.throttle;
-		this.throttles = new Collection();
+		this.args = info.args || [];
+		this.aliases = info.aliases || [];
+		this.guildOnly = info.guildOnly || true;
+		this.ownerOnly = info.ownerOnly || false;
+		this.userPermissions = info.userPermissions || [];
+		this.clientPermissions = info.clientPermissions || [];
+		this.throttleDuration = info.throttle || 0;
 	}
 
 	reload() {
 		delete require.cache[this.path];
-
 		this.client.commands.set(this.name, require(this.path));
 
 		Logger.info(`Reloaded ${this.name} command`);
@@ -31,9 +31,7 @@ class StarbotCommand {
 
 	unload() {
 		if (!require.cache[this.path]) return;
-
 		delete require.cache[this.path];
-
 		this.client.commands.delete(this.name);
 
 		Logger.info(`Unloaded ${this.name} command`);
@@ -43,13 +41,15 @@ class StarbotCommand {
 		const { author, guild } = message;
 
 		if (command) {
-			const user = await this.client.db.models.User.findByPk(author.id);
+			const user = await author.findCreateFind();
 			const endsAt = user.throttles.command;
 
 			if (!endsAt) return undefined;
 			if (endsAt > Date.now()) return endsAt;
 
-			return this.client.db.models.User.q.add(author.id, user.destroy);
+			const copy = user.toJSON().throttles;
+			delete copy.command;
+			return this.client.db.models.User.q.add(author.id, () => user.update({ throttles: copy }));
 		}
 
 		const throttle = this.throttles.get(guild ? author.id + guild.id : author.id);
@@ -76,11 +76,11 @@ class StarbotCommand {
 	}
 
 	async customThrottle(message, name, duration) {
-		const user = await this.client.db.models.User.findByPk(message.author.id);
+		const user = await message.author.findCreateFind();
 
-		user.throttles.name = Date.now() + duration;
-
-		return this.client.db.models.User.q.add(message.author.id, user.save);
+		const copy = user.toJSON().throttles;
+		copy.name = Date.now() + duration;
+		return this.client.db.models.User.q.add(message.author.id, () => user.update({ throttles: copy }));
 	}
 }
 
