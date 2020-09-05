@@ -54,6 +54,8 @@ class StarbotQueueManager {
 					resolve(res);
 				} catch (err) {
 					reject(err);
+				} finally {
+					if (this.queues.get(id).length === 0) this.queues.delete(id);
 				}
 			});
 		});
