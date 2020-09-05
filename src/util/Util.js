@@ -4,37 +4,30 @@ const { stripIndents } = require('common-tags');
 const Discord = require('discord.js');
 
 class Util {
-	// Returns an 's' if the number is one
 	static pluralize(number) {
 		return number === 1 ? '' : 's';
 	}
 
-	// Returns yes regex
 	static get yes() {
 		return /^y(?:es)?$/i;
 	}
 
-	// Returns no regex
 	static get no() {
 		return /^no?$/i;
 	}
 
-	// Returns cancel regex
 	static get cancel() {
 		return /^cancel$/i;
 	}
 
-	// Returns skip regex
 	static get skip() {
 		return /^skip$/i;
 	}
 
-	// Returns string with first character capitalised
 	static capitaliseFirstLetter(string) {
 		return string.charAt(0).toUpperCase() + string.slice(1);
 	}
 
-	// Replaces the last comma with an 'and' or ampersand
 	static fancyJoin(string, ampersand = false) {
 		if (string instanceof Array) string = string.join(', ');
 
@@ -45,7 +38,6 @@ class Util {
 		return string;
 	}
 
-	// Returns string ready to be sent
 	static formatErrorDiscord(error, code) {
 		return stripIndents`
 			:( An error occurred has occurred for some reason.
@@ -53,7 +45,6 @@ class Util {
 		`.concat(`\n\`\`\`js\nconst code = '${code}';\n${Util.sanitise(error.stack)}\n\`\`\``);
 	}
 
-	// Returns sanitised result
 	static sanitise(result, regex = false) {
 		let cleansed = result.toString()
 			.replace(process.env.TOKEN, 'here is the token you retard')
@@ -66,8 +57,6 @@ class Util {
 		return !regex ? cleansed : cleansed.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&');
 	}
 
-	// Mode options: all, has, missing
-	// Returns array of prettified permission flags
 	static prettifyPermissions(perms, autoCap = true, mode = 'all') {
 		if (perms instanceof Discord.Permissions) {
 			perms = Object.entries(perms.serialize());
@@ -138,7 +127,6 @@ class Util {
 		return id;
 	}
 
-	// All functions below return an array with valid ids
 	static matchUsers(str) {
 		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return [];
 
