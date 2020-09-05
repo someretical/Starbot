@@ -59,9 +59,15 @@ Guild.init({
 		afterFind: val => {
 			if (!val) return;
 
-			if (Array.isArray(val) && val.length) {
-				val.map(instance => !Guild.cache.has(instance.id) ? Guild.cache.set(instance.id, instance) : undefined);
+			if (Array.isArray(val)) {
+				if (!val.length) return;
+
+				val.map(instance => {
+					instance.isNewRecord = false;
+					return !Guild.cache.has(instance.id) ? Guild.cache.set(instance.id, instance) : undefined;
+				});
 			} else if (!Guild.cache.has(val.id)) {
+				val.isNewRecord = false;
 				Guild.cache.set(val.id, val);
 			}
 		},
@@ -71,10 +77,16 @@ Guild.init({
 		afterDestroy: instance => Guild.cache.delete(instance.id),
 
 		// Emitted on model instances that have save() or update() called on them
-		afterSave: instance => Guild.cache.set(instance.id, instance),
+		afterSave: instance => {
+			instance.isNewRecord = false;
+			Guild.cache.set(instance.id, instance);
+		},
 
 		// Emitted on model class method upsert()
-		afterUpsert: ([instance]) => Guild.cache.set(instance.id, instance),
+		afterUpsert: ([instance]) => {
+			instance.isNewRecord = false;
+			Guild.cache.set(instance.id, instance);
+		},
 	},
 	sequelize: db,
 });

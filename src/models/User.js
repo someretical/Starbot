@@ -39,11 +39,15 @@ User.init({
 		afterFind: val => {
 			if (!val) return;
 
-			if (Array.isArray(val) && val.length) {
-				val.map(instance =>
-					!User.cache.has(instance.id) ? User.cache.set(instance.id, instance) : undefined,
-				);
+			if (Array.isArray(val)) {
+				if (!val.length) return;
+
+				val.map(instance => {
+					instance.isNewRecord = false;
+					return !User.cache.has(instance.id) ? User.cache.set(instance.id, instance) : undefined;
+				});
 			} else if (!User.cache.has(val.id)) {
+				val.isNewRecord = false;
 				User.cache.set(val.id, val);
 			}
 		},
@@ -53,10 +57,16 @@ User.init({
 		afterDestroy: instance => User.cache.delete(instance.id),
 
 		// Emitted on model instances that have save() or update() called on them
-		afterSave: instance => User.cache.set(instance.id, instance),
+		afterSave: instance => {
+			instance.isNewRecord = false;
+			User.cache.set(instance.id, instance);
+		},
 
 		// Emitted on model class method upsert()
-		afterUpsert: ([instance]) => User.cache.set(instance.id, instance),
+		afterUpsert: ([instance]) => {
+			instance.isNewRecord = false;
+			User.cache.set(instance.id, instance);
+		},
 	},
 	sequelize: db,
 });
