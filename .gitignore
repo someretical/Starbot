@@ -1,6 +1,6 @@
 # Custom
 data
-run.bat
+*.bat
 test.js
 
 # Logs
