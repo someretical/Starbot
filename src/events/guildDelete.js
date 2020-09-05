@@ -1,7 +1,3 @@
 'use strict';
 
-module.exports = guild => {
-	if (!guild.client.ready) return;
-
-	guild.delete();
-};
+module.exports = guild => guild.client._ready ? guild.delete() : undefined;

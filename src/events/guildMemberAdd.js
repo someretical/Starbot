@@ -1,9 +1,8 @@
 'use strict';
 
 module.exports = async member => {
-	if (!member.client.ready) return;
-
-	await member.author.add();
-
-	if (member.guild.available) member.guild.add();
+	if (member.client._ready) {
+		await member.author.findCreateFind();
+		member.guild.findCreateFind();
+	}
 };
