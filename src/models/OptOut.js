@@ -36,11 +36,15 @@ OptOut.init({
 		afterFind: val => {
 			if (!val) return;
 
-			if (Array.isArray(val) && val.length) {
-				val.map(instance =>
-					!OptOut.cache.has(instance.user_id) ? OptOut.cache.set(instance.user_id, instance) : undefined,
-				);
+			if (Array.isArray(val)) {
+				if (!val.length) return;
+
+				val.map(instance => {
+					instance.isNewRecord = false;
+					return !OptOut.cache.has(instance.user_id) ? OptOut.cache.set(instance.user_id, instance) : undefined;
+				});
 			} else if (!OptOut.cache.has(val.user_id)) {
+				val.isNewRecord = false;
 				OptOut.cache.set(val.user_id, val);
 			}
 		},
@@ -50,10 +54,16 @@ OptOut.init({
 		afterDestroy: instance => OptOut.cache.delete(instance.user_id),
 
 		// Emitted on model instances that have save() or update() called on them
-		afterSave: instance => OptOut.cache.set(instance.user_id, instance),
+		afterSave: instance => {
+			instance.isNewRecord = false;
+			OptOut.cache.set(instance.user_id, instance);
+		},
 
 		// Emitted on model class method upsert()
-		afterUpsert: ([instance]) => OptOut.cache.set(instance.user_id, instance),
+		afterUpsert: ([instance]) => {
+			instance.isNewRecord = false;
+			OptOut.cache.set(instance.user_id, instance);
+		},
 	},
 	sequelize: db,
 });

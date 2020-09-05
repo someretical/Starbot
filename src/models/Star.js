@@ -49,11 +49,15 @@ Star.init({
 		afterFind: val => {
 			if (!val) return;
 
-			if (Array.isArray(val) && val.length) {
-				val.map(instance =>
-					!Star.cache.has(instance.message_id) ? Star.cache.set(instance.message_id, instance) : undefined,
-				);
+			if (Array.isArray(val)) {
+				if (!val.length) return;
+
+				val.map(instance => {
+					instance.isNewRecord = false;
+					return !Star.cache.has(instance.message_id) ? Star.cache.set(instance.message_id, instance) : undefined;
+				});
 			} else if (!Star.cache.has(val.message_id)) {
+				val.isNewRecord = false;
 				Star.cache.set(val.message_id, val);
 			}
 		},
@@ -63,10 +67,16 @@ Star.init({
 		afterDestroy: instance => Star.cache.delete(instance.message_id),
 
 		// Emitted on model instances that have save() or update() called on them
-		afterSave: instance => Star.cache.set(instance.message_id, instance),
+		afterSave: instance => {
+			instance.isNewRecord = false;
+			return Star.cache.set(instance.message_id, instance);
+		},
 
 		// Emitted on model class method upsert()
-		afterUpsert: ([instance]) => Star.cache.set(instance.message_id, instance),
+		afterUpsert: ([instance]) => {
+			instance.isNewRecord = false;
+			return Star.cache.set(instance.message_id, instance);
+		},
 	},
 	sequelize: db,
 });

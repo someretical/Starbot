@@ -24,7 +24,7 @@ Tag.init({
 		defaultValue: DataTypes.UUIDV4,
 		allowNull: false,
 	},
-	Tag_id: {
+	guild_id: {
 		type: DataTypes.STRING,
 		allowNull: false,
 	},
@@ -54,9 +54,15 @@ Tag.init({
 		afterFind: val => {
 			if (!val) return;
 
-			if (Array.isArray(val) && val.length) {
-				val.map(instance => !Tag.cache.has(instance.id) ? Tag.cache.set(instance.id, instance) : undefined);
+			if (Array.isArray(val)) {
+				if (!val.length) return;
+
+				val.map(instance => {
+					instance.isNewRecord = false;
+					return !Tag.cache.has(instance.id) ? Tag.cache.set(instance.id, instance) : undefined;
+				});
 			} else if (!Tag.cache.has(val.id)) {
+				val.isNewRecord = false;
 				Tag.cache.set(val.id, val);
 			}
 		},
@@ -66,7 +72,10 @@ Tag.init({
 		afterDestroy: instance => Tag.cache.delete(instance.id),
 
 		// Emitted on model instances that have save() or update() called on them
-		afterSave: instance => Tag.cache.set(instance.id, instance),
+		afterSave: instance => {
+			instance.isNewRecord = false;
+			Tag.cache.set(instance.id, instance);
+		},
 
 		// Bandage fix for https://github.com/sequelize/sequelize/issues/10823
 		beforeUpsert: values => {
@@ -74,7 +83,10 @@ Tag.init({
 		},
 
 		// Emitted on model class method upsert()
-		afterUpsert: ([instance]) => Tag.cache.set(instance.id, instance),
+		afterUpsert: ([instance]) => {
+			instance.isNewRecord = false;
+			Tag.cache.set(instance.id, instance);
+		},
 	},
 	sequelize: db,
 });
