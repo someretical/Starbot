@@ -6,20 +6,20 @@ const Logger = require('../util/Logger.js');
 class StarbotCommand {
 	constructor(client, info) {
 		this.client = client;
-		this.path = __filename;
 		this.throttles = new Collection();
 
 		this.name = info.name;
 		this.description = info.description;
 		this.group = info.group;
 		this.usage = info.usage;
-		this.args = info.args || [];
-		this.aliases = info.aliases || [];
-		this.guildOnly = info.guildOnly || true;
-		this.ownerOnly = info.ownerOnly || false;
-		this.userPermissions = info.userPermissions || [];
-		this.clientPermissions = info.clientPermissions || [];
-		this.throttleDuration = info.throttle || 0;
+		this.args = info.args;
+		this.aliases = info.aliases;
+		this.guildOnly = info.guildOnly;
+		this.ownerOnly = info.ownerOnly;
+		this.userPermissions = info.userPermissions;
+		this.clientPermissions = info.clientPermissions;
+		this.throttleDuration = info.throttle;
+		this.path = require('path').resolve(__dirname, '..', 'commands', info.group, `${info.name}.js`);
 	}
 
 	reload() {
