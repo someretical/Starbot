@@ -27,7 +27,7 @@ class StarbotDatabase {
 
 		for (const file of files) {
 			if (!file.endsWith('.js')) {
-				Logger.info(`Skipping model ${file}`);
+				Logger.warn(`Skipping model ${file}`);
 				continue;
 			}
 

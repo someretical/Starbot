@@ -15,4 +15,5 @@ module.exports = async client => {
 	await client.db.models.Tag.findAll();
 
 	client._ready = true;
+	Logger.info('Loaded necessary models into cache');
 };
