@@ -66,12 +66,13 @@ module.exports = async (client, message) => {
 	message.command.throttle(message);
 
 	try {
-		message.command.run(message);
+		await message.command.run(message);
 	} catch (err) {
 		if (channel.awaiting.has(author.id)) channel.awaiting.delete(author.id);
 		channel.error(err, 'runCommand');
 
-		Logger.err(err, 'Failed to run command');
+		Logger.err('Failed to run command');
+		Logger.stack(err);
 	}
 
 	return undefined;
