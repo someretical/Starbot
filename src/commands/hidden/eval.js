@@ -31,7 +31,7 @@ module.exports = class Eval extends StarbotCommand {
 		this.lastResult = null;
 	}
 
-	run(message) {
+	async run(message) {
 		// eslint-disable-next-line no-unused-vars
 		const { client, raw, channel } = message;
 
@@ -39,7 +39,7 @@ module.exports = class Eval extends StarbotCommand {
 		try {
 			const hrStart = process.hrtime();
 
-			this.lastResult = eval(raw.args);
+			this.lastResult = await eval(raw.args);
 
 			hrDiff = process.hrtime(hrStart);
 		} catch (err) {
