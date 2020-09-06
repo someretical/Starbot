@@ -13,7 +13,7 @@ class Starbot extends Discord.Client {
 
 		this.commands = new Discord.Collection();
 		this.aliases = new Discord.Collection();
-		this.commandGroups = [];
+		this.commandGroups = new Set();
 		this.db = StarbotDatabase.db;
 		this.prefix = process.env.PREFIX;
 		this.embedColour = process.env.EMBED_COLOUR;
@@ -53,7 +53,8 @@ class Starbot extends Discord.Client {
 			try {
 				await this.login(process.env.TOKEN);
 			} catch (err) {
-				Logger.err(err, 'Failed to log in. Retrying in 30 seconds...');
+				Logger.err('Failed to log in. Retrying in 30 seconds...');
+				Logger.stack(err);
 
 				setTimeout(login, 30000);
 			}
@@ -96,6 +97,7 @@ class Starbot extends Discord.Client {
 
 				this.commands.set(command.name, command);
 				command.aliases.map(alias => this.aliases.set(alias, command.name));
+				this.commandGroups.add(command.group);
 				counter++;
 			}
 		}

@@ -31,7 +31,8 @@ class StarbotQueue {
 		try {
 			await promiseFunction();
 		} catch (err) {
-			Logger.err(err, 'Failed to execute queue promise function');
+			Logger.err('Failed to execute queue promise function');
+			Logger.stack(err);
 		}
 
 		this.process();
