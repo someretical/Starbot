@@ -1,6 +1,5 @@
 'use strict';
 
-const { stripIndents } = require('common-tags');
 const Discord = require('discord.js');
 
 class Util {
@@ -39,10 +38,8 @@ class Util {
 	}
 
 	static formatErrorDiscord(error, code) {
-		return stripIndents`
-			:( An error occurred has occurred for some reason.
-			Please contact a dev and provide the error stack below:	
-		`.concat(`\n\`\`\`js\nconst code = '${code}';\n${Util.sanitise(error.stack)}\n\`\`\``);
+		return `:( An error has occurred for some reason. Please contact the bot owner and provide the error stack below:`
+			.concat(`\n\`\`\`js\n// ERROR_CODE: ${code}\n\n${Util.sanitise(error.stack)}\n\`\`\``);
 	}
 
 	static sanitise(result, regex = false) {
