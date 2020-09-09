@@ -7,26 +7,23 @@
 		"url": "https://github.com/thecraptheorist/Starbot/issues",
 		"email": "thecraptheorist@gmail.com"
 	},
-	"license": "GPL-3.0-only",
+	"license": "MIT",
 	"author": {
-		"name": "thecraptheorist",
-		"email": "thecraptheorist@gmail.com",
-		"url": "https://github.com/thecraptheorist"
+		"name": "someretical",
+		"url": "https://github.com/someretical"
 	},
 	"main": "index.js",
-	"repository": "github:thecraptheorist/Starbot",
+	"repository": "github:someretical/Starbot",
 	"scripts": {
 		"lint": "npx eslint --fix ./",
 		"dev": "nodemon -r dotenv/config index.js",
 		"start": "pm2 start -r dotenv/config index.js"
 	},
 	"dependencies": {
-		"chalk": "^4.1.0",
 		"common-tags": "^1.8.0",
 		"discord.js": "^12.3.1",
 		"dotenv": "^8.2.0",
 		"moment": "^2.27.0",
-		"node-fetch": "^2.6.1",
 		"pg": "^8.3.3",
 		"pg-hstore": "^2.3.3",
 		"sequelize": "^6.3.5"
