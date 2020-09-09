@@ -20,29 +20,21 @@ module.exports = Discord.Structures.extend('User', User => class StarbotUser ext
 
 	purgeData() {
 		return this.client.db.transaction(async t => {
-			await this.client.db.models.Star.q.add(async () => {
-				await this.client.db.models.Star.destroy({
-					where: { author_id: this.id },
-				}, { transaction: t });
+			await this.client.db.models.Star.destroy({
+				where: { author_id: this.id },
+			}, { transaction: t });
 
-				this.client.db.models.Star.cache.sweep(star => star.author_id === this.id);
-			});
-
-			await this.client.db.models.Tag.q.add(async () => {
-				await this.client.db.models.Tag.destroy({
-					where: { creator_id: this.id },
-				}, { transaction: t });
-
-				this.client.db.models.Tag.cache.sweep(star => star.creator_id === this.id);
-			});
+			await this.client.db.models.Tag.destroy({
+				where: { creator_id: this.id },
+			}, { transaction: t });
 
 			const _user = await this.findCreateFind();
-			_user.update({
+			this.client.db.models.User.q.add(this.id, () => _user.update({
 				id: this.id,
 				coins: 0,
 				reputation: 0,
 				throttles: {},
-			}, { transaction: t });
+			}, { transaction: t }));
 		});
 	}
 });
