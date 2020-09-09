@@ -63,8 +63,13 @@ Star.init({
 		},
 
 		// Emitted on model instances that are destroyed
-		// Model classes require custom handling for destructive actions such as destroy() and bulkDelete()
 		afterDestroy: instance => Star.cache.delete(instance.message_id),
+
+		// Emitted on model classes with destroy() called
+		afterBulkDestroy: options => {
+			const entries = Object.entries(options.where);
+			cache.sweep(model => entries.every(([k, v]) => model[k] === v));
+		},
 
 		// Emitted on model instances that have save() or update() called on them
 		afterSave: instance => {
