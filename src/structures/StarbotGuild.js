@@ -22,24 +22,16 @@ module.exports = Discord.Structures.extend('Guild', Guild => class StarbotGuild 
 
 	delete() {
 		return this.client.db.transaction(async t => {
-			await this.client.db.models.Star.q.add(async () => {
-				await this.client.db.models.Star.destroy({
-					where: { guild_id: this.id },
-				}, { transaction: t });
+			await this.client.db.models.Star.destroy({
+				where: { guild_id: this.id },
+			}, { transaction: t });
 
-				this.client.db.models.Star.cache.sweep(star => star.guild_id === this.id);
-			});
-
-			await this.client.db.models.Tag.q.add(async () => {
-				await this.client.db.models.Tag.destroy({
-					where: { guild_id: this.id },
-				}, { transaction: t });
-
-				this.client.db.models.Tag.cache.sweep(tag => tag.guild_id === this.id);
-			});
+			await this.client.db.models.Tag.destroy({
+				where: { guild_id: this.id },
+			}, { transaction: t });
 
 			const _guild = await this.findCreateFind();
-			_guild.destroy({ transaction: t });
+			this.client.db.models.Guild.q.add(this.id, () => _guild.destroy({ transaction: t }));
 		});
 	}
 
