@@ -1,6 +1,7 @@
 'use strict';
 
 const { Collection } = require('discord.js');
+const moment = require('moment');
 const Logger = require('../util/Logger.js');
 
 class StarbotCommand {
@@ -42,18 +43,29 @@ class StarbotCommand {
 
 		if (command) {
 			const user = await author.findCreateFind();
-			const endsAt = user.throttles.command;
+			const endsAt = user.throttles[command];
 
 			if (!endsAt) return undefined;
-			if (endsAt > Date.now()) return endsAt;
+			if (endsAt > Date.now()) {
+				const timeLeft = moment(endsAt).fromNow(true);
+				return message.channel.send(`Please wait ${timeLeft} to run this command again.`);
+			}
 
 			const copy = user.toJSON().throttles;
-			delete copy.command;
-			return this.client.db.models.User.q.add(author.id, () => user.update({ throttles: copy }));
+			delete copy[command];
+			await this.client.db.models.User.q.add(author.id, () => user.update({ throttles: copy }));
+
+			return undefined;
 		}
 
 		const throttle = this.throttles.get(guild ? author.id + guild.id : author.id);
-		return throttle ? throttle.endsAt : undefined;
+		if (throttle && throttle.endsAt) {
+			const timeLeft = moment(throttle.endsAt).fromNow(true);
+
+			return message.channel.send(`Please wait ${timeLeft} to use this command again.`);
+		}
+
+		return undefined;
 	}
 
 	throttle(message) {
@@ -76,11 +88,12 @@ class StarbotCommand {
 	}
 
 	async customThrottle(message, name, duration) {
+		if (this.client.isOwner(message.author.id)) return;
 		const user = await message.author.findCreateFind();
 
 		const copy = user.toJSON().throttles;
-		copy.name = Date.now() + duration;
-		return this.client.db.models.User.q.add(message.author.id, () => user.update({ throttles: copy }));
+		copy[name] = Date.now() + duration;
+		this.client.db.models.User.q.add(message.author.id, () => user.update({ throttles: copy }));
 	}
 }
 
