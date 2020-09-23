@@ -1,6 +1,5 @@
 'use strict';
 
-const moment = require('moment');
 const Logger = require('../util/Logger.js');
 const { fancyJoin, prettifyPermissions } = require('../util/Util.js');
 
@@ -8,6 +7,8 @@ module.exports = async (client, message) => {
 	const { author, channel, guild, member } = message;
 	if (!client._ready || message.system || (guild && !guild.available)) return undefined;
 
+	// Check if author is a webhook
+	if (author.bot && author.discriminator === '0000') return undefined;
 
 	await author.findCreateFind();
 	let _guild;
@@ -45,12 +46,7 @@ module.exports = async (client, message) => {
 		return channel.embed('This is an owner-only command!');
 	}
 
-	let timeLeft = await message.command.checkThrottle(message);
-	if (timeLeft) {
-		timeLeft = moment(timeLeft).fromNow(true);
-
-		return channel.embed(`You are sending commands too fast! Please wait ${timeLeft} to use this command again.`);
-	}
+	if (await message.command.checkThrottle(message)) return undefined;
 
 	if (message.command.clientPermissions.length && !message.DM) {
 		const canRun = channel.clientHasPermissions(message.command.clientPermissions);
