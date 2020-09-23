@@ -33,6 +33,7 @@ class Starboard {
 
 		if (_1 || _2) return false;
 
+		// Commands will have already validated the user_id
 		if (user_id && !cmd) {
 			// Check if user_id has opted out
 			const _3 = this.client.db.models.OptOut.cache.has(user_id);
@@ -117,7 +118,7 @@ class Starboard {
 	}
 
 	async addStar(message, user_id, cmd = false) {
-		const invalid = await this._checkValidity(message, user_id);
+		const invalid = await this._checkValidity(message, user_id, cmd);
 		if (!invalid) return undefined;
 
 		return this.client.db.models.Star.q.add(message.id, () => this._addStar(message, user_id, cmd));
@@ -127,7 +128,10 @@ class Starboard {
 		const star = this.getStars(message.id);
 		if (!star) return this._addNewStar(message, cmd ? user_id : undefined);
 
-		if (star.reactions.msg.includes(user_id) || star.reactions.cmd.includes(user_id)) return undefined;
+		// Commands will have already validated the user_id
+		if (!cmd) {
+			if (star.reactions.msg.includes(user_id) || star.reactions.cmd.includes(user_id)) return undefined;
+		}
 
 		const _reactions = star.toJSON().reactions;
 		_reactions[cmd ? 'cmd' : 'msg'].push(user_id);
@@ -137,8 +141,8 @@ class Starboard {
 		return this._displayStar(message, star);
 	}
 
-	async removeStar(message, user_id, cmd) {
-		const invalid = await this._checkValidity(message, user_id);
+	async removeStar(message, user_id, cmd = false) {
+		const invalid = await this._checkValidity(message, user_id, cmd);
 		if (!invalid) return undefined;
 
 		return this.client.db.models.Star.q.add(message.id, () => this._removeStar(message, user_id, cmd));
