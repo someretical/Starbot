@@ -10,10 +10,10 @@ module.exports = async client => {
 		client.db.models.User.findCreateFind({ where: { id: client.user.id } }),
 	);
 
-	await client.db.models.OptOut.findAll();
-	await client.db.models.Star.findAll();
-	await client.db.models.Tag.findAll();
+	// eslint-disable-next-line no-await-in-loop
+	for (const model in client.db.models) await client.db.models[model].findAll();
 
 	client._ready = true;
-	Logger.info('Loaded necessary models into cache');
+	Logger.info('Cached models');
+	Logger.info(`Client ready at ${new Date()}`);
 };
