@@ -10,6 +10,18 @@ module.exports = Discord.Structures.extend('Guild', Guild => class StarbotGuild 
 		this.starboard = new Starboard(this);
 	}
 
+	get stars() {
+		return this.client.db.models.Star.cache.filter(star => star.guild_id === this.id);
+	}
+
+	get tags() {
+		return this.client.db.models.Tag.cache.filter(tag => tag.guild_id === this.id);
+	}
+
+	get model() {
+		return this.client.db.models.Guild.cache.get(this.id);
+	}
+
 	async findCreateFind() {
 		const cached = this.client.db.models.Guild.cache.get(this.id);
 		if (cached) return cached;
@@ -30,8 +42,7 @@ module.exports = Discord.Structures.extend('Guild', Guild => class StarbotGuild 
 				where: { guild_id: this.id },
 			}, { transaction: t });
 
-			const _guild = await this.findCreateFind();
-			this.client.db.models.Guild.q.add(this.id, () => _guild.destroy({ transaction: t }));
+			this.client.db.models.Guild.q.add(this.id, () => this.model.destroy({ transaction: t }));
 		});
 	}
 
