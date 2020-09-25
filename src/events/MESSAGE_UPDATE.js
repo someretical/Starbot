@@ -2,7 +2,7 @@
 
 module.exports = async (client, data, guild, channel) => {
 	const star = client.db.models.Star.cache.get(data.id);
-	const _guild = await guild.findCreateFind();
+	const _guild = guild.model;
 	const starboard = guild.channels.cache.get(_guild.starboard_id);
 	if (!star || !_guild.starboardEnabled || !starboard || starboard.type !== 'text') return undefined;
 

@@ -15,9 +15,8 @@ module.exports = class DeleteStar extends StarbotCommand {
 				optional: false,
 				description: 'link to a message or a message ID',
 				example: 'https://discord.com/channels/361736003859513344/732842050516680705/732842074612826112',
-				code: true,
 			}],
-			aliases: ['purgestar'],
+			aliases: ['removestar', 'purgestar'],
 			userPermissions: [],
 			clientPermissions: [],
 			guildOnly: true,
@@ -28,17 +27,19 @@ module.exports = class DeleteStar extends StarbotCommand {
 
 	async run(message) {
 		const { args, channel, guild } = message;
-		const invalidURL = () => channel.embed('Please provide a valid message ID or URL!');
-		let url, starMessage_id;
 
-		if (!args[0]) return invalidURL();
+		if (!args[0]) {
+			return channel.send('Please provide a message ID or URL!');
+		}
 
-		url = matchMessageURL(url);
-		if (!url) return invalidURL();
+		const id = matchMessageURL(args[0]);
+		if (!id) {
+			return channel.send('Please provide a valid message ID or URL!');
+		}
 
-		const star = guild.starboard.getStarModel(starMessage_id);
+		const star = guild.starboard.getStars(id);
 		if (!star) {
-			return channel.embed('This message has not been starred!');
+			return channel.send('This message has not been starred!');
 		}
 
 		await guild.starboard.destroyStar(star);
@@ -51,6 +52,6 @@ module.exports = class DeleteStar extends StarbotCommand {
 			}
 		}
 
-		return channel.embed(`The specified message has been deleted.`);
+		return channel.send(`The specified message has been deleted.`);
 	}
 };

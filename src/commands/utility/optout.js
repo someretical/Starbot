@@ -2,7 +2,7 @@
 
 const { oneLine, stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchUsers, yes, no } = require('../../util/Util.js');
+const { matchUsers, cancelCmd, timeUp, yes, no } = require('../../util/Util.js');
 
 module.exports = class OptOut extends StarbotCommand {
 	constructor(client) {
@@ -16,6 +16,7 @@ module.exports = class OptOut extends StarbotCommand {
 				name: '<user>',
 				optional: true,
 				description: 'an unblocked user mention or a valid ID (only usable for owners)',
+				defaultValue: 'none',
 				example: `<@${client.owners[0]}>`,
 				code: false,
 			}],
@@ -30,97 +31,106 @@ module.exports = class OptOut extends StarbotCommand {
 
 	async run(message) {
 		const { client, args, author, channel } = message;
-		let user;
 
-		if (client.isOwner(author.id)) {
+		if (args[0] && client.isOwner(author.id)) {
+			const id = matchUsers(args[0])[0];
+			let user, exists = false;
+
 			try {
-				user = await client.users.fetch(matchUsers(args[0])[0]);
+				user = await client.users.fetch(id);
 
 				await user.add();
+
+				exists = true;
 				// eslint-disable-next-line no-empty
 			} catch (err) {}
 
-			let reason = args[1] || 'None';
-
-			if (!user || user.ignored) {
-				return channel.embed('Please provide a valid user resolvable!');
+			if (!id) {
+				return channel.send('Please provide a valid user resolvable!');
 			}
 
-			const [record] = await user.queue(() => client.db.models.GlobalIgnore.upsert({
-				user_id: author.id,
-				executor_id: client.user.id,
-				reason: reason,
-			}));
+			if (client.db.models.OptOut.cache.has(id)) {
+				return channel.embed(`<@${id}> has already opted out!`);
+			}
 
-			client.db.cache.GlobalIgnore.set(user.id, record);
+			channel.awaiting.add(author.id);
+			const question = await channel.send(stripIndents`
+				Please confirm the following ID: \`${id}\`\n${!exists ? `**Warning:** this ID could not be fetched!\n` : ''}
+				Type __y__es to confirm or __n__o to cancel the command.
+			`);
+			const collector = channel.createMessageCollector(msg => msg.author.id === author.id, { idle: 15000 });
 
-			return channel.embed(`${user.toString()} has been globally blocked. Reason: ${reason}`);
+			collector.on('collect', msg => {
+				const no_ = no.test(msg.content);
+				if (no_) return collector.stop('no');
+				if (!yes.test(msg.content) && !no_) return channel.send('Please provide a __y__es/__n__o response!');
+
+				return collector.stop();
+			});
+
+			collector.on('end', async (collected, reason) => {
+				channel.awaiting.delete(author.id);
+				await question.delete();
+
+				if (reason === 'no') return cancelCmd(message);
+				if (reason === 'idle') return timeUp(message);
+
+				const _reason = args[1] ? args[1].substring(0, 256) : 'None';
+				await client.db.models.OptOut.q.add(id, () => client.db.models.OptOut.upsert({
+					user_id: id,
+					executor_id: author.id,
+					reason: _reason,
+				}));
+
+				return channel.embed(`<@${id}> has been globally blocked.`);
+			});
+
+			return undefined;
 		}
 
-		user = author;
+		if (client.isOwner(author.id)) {
+			return channel.send('You cannot opt out as an owner!');
+		}
 
-		const confirmEmbed = client.embed(null, true)
-			.setTitle(`Confirm your action`)
-			.setDescription(stripIndents`
+		const question = await channel.send(stripIndents`
+			${oneLine`
 				Opting out will make the bot delete all data that belongs to you (see \`${client.prefix}datacollection\`)
-				It will also make the bot ignore you permanently so there is no going back after you provide confirmation.
-				Once you have opted out, the only record the bot will store about you is your ID (to ensure it ignores you).
+				and will also make the bot ignore you **permanently**.`}
+			${oneLine`Once you have opted out, the only record the bot will store about you is your ID
+			(to ensure it knows to ignores you).`}
 
-				Type \`y(es)\` to proceed or \`n(o)\` to cancel this command.
-			`);
-
-		const question = await channel.send(confirmEmbed);
-		const collector = channel.createMessageCollector(msg => msg.author.id === author.id, { time: 15000 });
+			Type __y__es to proceed or __n__o to cancel this command.
+		`);
+		const collector = channel.createMessageCollector(msg => msg.author.id === author.id, { idle: 15000 });
 
 		collector.on('collect', msg => {
-			const no_ = no.test(msg.content);
-			if (no_.test(msg.content)) {
-				return collector.stop('no');
-			}
-
-			if (!yes.test(msg.content) && !no_) {
-				return msg.channel.embed('Please provide a yes/no response!');
-			}
+			const _no = no.test(msg.content);
+			if (_no.test(msg.content)) return collector.stop('no');
+			if (!yes.test(msg.content) && !_no) return channel.send('Please provide a __y__es/__n__o response!');
 
 			return collector.stop();
 		});
 
 		collector.on('end', async (collected, reason) => {
+			channel.awaiting.delete(author.id);
 			await question.delete();
 
-			if (reason === 'no') {
-				const embed = client.embed(null, true)
-					.setTitle(`Confirm your action`)
-					.setDescription('The command has been cancelled.');
+			if (reason === 'no') return cancelCmd(message);
+			if (reason === 'idle') return timeUp(message);
 
-				channel.send(embed);
+			const purging = await channel.send('Opting you out... (this might take a while)');
 
-				return channel.awaiting.delete(author.id);
-			}
-
-			if (reason === 'time') {
-				const embed = client.embed(null, true)
-					.setTitle(`Confirm your action`)
-					.setDescription('Sorry but the message collector timed out. Please run the command again.');
-
-				channel.send(embed);
-
-				return channel.awaiting.delete(author.id);
-			}
-
-			const [record] = await user.queue(() => client.db.models.GlobalIgnore.upsert({
+			await client.db.models.OptOut.q.add(author.id, () => client.db.models.OptOut.upsert({
 				user_id: author.id,
 				executor_id: client.user.id,
-				reason: 'Opt-out',
+				reason: 'OPTOUT_COMMAND',
 			}));
 
-			client.db.cache.GlobalIgnore.set(user.id, record);
+			await author.purgeData();
 
-			await user.purgeData();
-
-			return channel.embed(`You have successfully opted out.`);
+			return purging.edit('You have successfully opted out.');
 		});
 
-		return channel.awaiting.delete(author.id);
+		return undefined;
 	}
 };

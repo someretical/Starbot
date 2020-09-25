@@ -42,7 +42,7 @@ class StarbotCommand {
 		const { author, guild } = message;
 
 		if (command) {
-			const user = await author.findCreateFind();
+			const user = author.model;
 			const endsAt = user.throttles[command];
 
 			if (!endsAt) return undefined;
@@ -87,9 +87,9 @@ class StarbotCommand {
 		}
 	}
 
-	async customThrottle(message, name, duration) {
+	customThrottle(message, name, duration) {
 		if (this.client.isOwner(message.author.id)) return;
-		const user = await message.author.findCreateFind();
+		const user = message.author.model;
 
 		const copy = user.toJSON().throttles;
 		copy[name] = Date.now() + duration;

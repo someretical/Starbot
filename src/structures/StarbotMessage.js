@@ -23,18 +23,19 @@ module.exports = Discord.Structures.extend('Message', Message => class StarbotMe
 	}
 
 	async sendTag(tag) {
-		const response = tag.response.replace(/<guild_name>/ig, this.guild.name)
+		const response = tag.response
+			.replace(/<guild>/ig, this.guild.name)
 			.replace(/<channel>/ig, this.channel.toString())
 			.replace(/<author>/ig, this.author.toString());
 
-		await this.channel.send(response);
+		await this.channel.send(response.length > 1024 ? `${response.substring(0, 1021)}...` : response);
 
 		this.client.db.models.Tag.q.add(tag.id, () => tag.update({ uses: tag.uses + 1 }));
 	}
 
 	async parse() {
 		let _guild;
-		if (this.guild) _guild = await this.guild.findCreateFind();
+		if (this.guild) _guild = this.guild.model;
 		const prefix = _guild ? sanitise(_guild.prefix, true) : this.client.prefix;
 		const prefixPattern = new RegExp(`^(<@!?${this.client.user.id}>\\s+|${prefix})(\\S+)`);
 		const matched = this.content.match(prefixPattern);

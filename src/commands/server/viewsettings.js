@@ -23,17 +23,23 @@ module.exports = class ViewSettings extends StarbotCommand {
 	run(message) {
 		const { client, channel, guild } = message;
 
-		const s = guild.settings;
-		const ignoredChannels = JSON.parse(guild.settings.ignoredChannels);
+		const _guild = guild.model;
+		const roles = _guild.ignoredRoles.length;
+		const users = _guild.ignoredUsers.length;
+		const channels = _guild.ignoredChannels.length;
+
 		const embed = client.embed(null, true)
 			.setTitle(`Settings for ${guild.name}`)
 			.setThumbnail(guild.iconURL())
-			.addField('Prefix', `\`${s.prefix}\``, true)
-			.addField('Starboard', s.starboard_id ? `<#${s.starboard_id}>` : 'None', true)
-			.addField('Starboard enabled?', s.starboardEnabled ? 'Yes' : 'No', true)
-			.addField('Reaction threshold', `${s.reactionThreshold} ⭐`, true)
-			.addField('Tags enabled?', s.tagsEnabled ? 'Yes' : 'No', true)
-			.addField('Ignored channels', `${ignoredChannels.length} channel${pluralize(ignoredChannels.length)}`, true);
+			.addField('Prefix', `\`${_guild.prefix}\``, true)
+			.addField('Starboard', _guild.starboard_id ? `<#${_guild.starboard_id}>` : 'None', true)
+			.addField('Starboard enabled?', _guild.starboardEnabled ? 'Yes' : 'No', true)
+			.addField('Reaction threshold', `${_guild.reactionThreshold} ⭐`, true)
+			.addField('Tags enabled?', _guild.tagsEnabled ? 'Yes' : 'No', true)
+			.addField('Ignored roles', `${roles} role${pluralize(roles)}`, true)
+			.addField('Ignored users', `${users} user${pluralize(users)}`, true)
+			.addField('Ignored channels', `${channels} channel${pluralize(channels)}`, true)
+			.addField('\u200b', '\u200b', true);
 
 		channel.send(embed);
 	}

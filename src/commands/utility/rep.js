@@ -1,6 +1,5 @@
 'use strict';
 
-const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchUsers } = require('../../util/Util.js');
 
@@ -15,7 +14,7 @@ module.exports = class Rep extends StarbotCommand {
 				name: '<user>',
 				optional: false,
 				description: 'a user mention or ID',
-				example: `<@!${client.owners[0]}>`,
+				example: `<@${client.owners[0]}>`,
 				code: false,
 			}],
 			aliases: ['addrep'],
@@ -30,34 +29,24 @@ module.exports = class Rep extends StarbotCommand {
 	async run(message) {
 		const { client, args, author, channel, command } = message;
 
-		const throttleDuration = command.checkThrottle(message, 'rep');
-		if (throttleDuration && !client.isOwner(author.id)) {
-			const timeLeft = moment(throttleDuration).fromNow(true);
+		if (await command.checkThrottle(message, 'addcoins')) return undefined;
 
-			return channel.embed(`You can give another reputation point in ${timeLeft}. Please be patient.`);
+		if (!args[0]) {
+			return channel.send('Please provide a user resolvable!');
 		}
 
-		const id = matchUsers(args[0])[0];
-		let user;
-		try {
-			user = await client.users.fetch(id);
-		// eslint-disable-next-line no-empty
-		} catch (err) {}
-
-		if (user) await user.add();
+		const user = client.db.models.User.cache.get(matchUsers(args[0])[0]);
 		if (!user) {
-			return channel.embed('Please provide a valid user resolvable!');
+			return channel.send('This user has not been added yet.');
 		}
 
-		const upsertObj = user.data.toJSON();
-		upsertObj.reputation++;
-		upsertObj.username = user.username;
-		upsertObj.discriminator = user.discriminator;
+		if (user.id === author.id) {
+			return channel.send('You cannot give yourself reputation!');
+		}
 
-		const [updatedUser] = await user.queue(() => client.db.models.User.upsert(upsertObj));
-		client.db.cache.User.set(user.id, updatedUser);
+		await client.db.models.User.q.add(user.id, () => user.update({ reputation: user.reputation + 1 }));
 
-		await channel.embed(`You have given ${user.toString()} one reputation.`);
-		return command.globalThrottle(message, 'rep', 86400000);
+		await channel.embed(`You have given <@${user.id}> one reputation.`);
+		return command.customThrottle(message, 'rep', 86400000);
 	}
 };

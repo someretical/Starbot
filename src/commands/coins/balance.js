@@ -14,6 +14,7 @@ module.exports = class Balance extends StarbotCommand {
 				name: '<user>',
 				optional: true,
 				description: 'a user mention or ID',
+				defaultValue: 'message author',
 				example: `<@${client.owners[0]}>`,
 				code: false,
 			}],
@@ -26,24 +27,20 @@ module.exports = class Balance extends StarbotCommand {
 		});
 	}
 
-	async run(message) {
+	run(message) {
 		const { client, args, author, channel } = message;
-		const invalid = () => channel.send('Please provide a valid user resolvable!');
-
-		if (!args[0]) return invalid();
-
 		let user;
-		try {
-			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
-		} catch (err) {
-			return invalid();
+
+		if (!args[0]) {
+			user = author.model;
+		} else {
+			user = client.db.models.User.cache.get(matchUsers(args[0])[0]);
+
+			if (!user) return channel.send('This user has not been added yet.');
 		}
 
-		await user.add();
-
-		const coins = user.data.coins;
-		const username = user.id === author.id ? 'You have' : `${user.toString()} has`;
-
+		const coins = user.coins;
+		const username = args[0] ? `<@${user.id}> has` : 'You have';
 		return channel.embed(`${username} ${coins} coin${pluralize(coins)}.`);
 	}
 };

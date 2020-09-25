@@ -2,7 +2,7 @@
 
 const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { pluralize: s } = require('../../util/Util.js');
+const { pluralize } = require('../../util/Util.js');
 
 module.exports = class TagInfo extends StarbotCommand {
 	constructor(client) {
@@ -16,7 +16,6 @@ module.exports = class TagInfo extends StarbotCommand {
 				optional: false,
 				description: 'the name of the tag',
 				example: 'hi',
-				code: true,
 			}],
 			aliases: ['tagstats', 'tagstatistics', 'taginformation'],
 			userPermissions: [],
@@ -28,30 +27,40 @@ module.exports = class TagInfo extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, args, channel, guild } = message;
+		const { client, args, author, channel, guild } = message;
 
 		if (!args[0]) {
-			return channel.embed('Please provide a tag name!');
+			return channel.send('Please provide a tag name!');
 		}
 
-		const tag = guild.tags.get(guild.id + args[0].toLowerCase());
+		const tag = guild.tags.find(t => t.name === args[0].toLowerCase());
 		if (!tag) {
-			return channel.embed('That tag does not exist!');
+			return channel.send('That tag does not exist!');
 		}
 
+		const creator = client.users.cache.has(tag.creator_id) ?
+			`<@${tag.creator_id}>` :
+			`Unknown user (${tag.creator_id})`;
+		const preview = tag.response
+			.replace(/<guild>/ig, guild.name)
+			.replace(/<channel>/ig, channel.toString())
+			.replace(/<author>/ig, author.toString());
 		const embed = client.embed(null, true)
-			.setTitle(`Tag information: ${tag.name}`)
-			.setThumbnail(message.guild.iconURL())
+			.setTitle('Tag information')
+			.setThumbnail(guild.iconURL())
 			.addField('Name', tag.name, true)
-			.addField('Response', tag.response, true)
-			.addField('Creator', `<@!${tag.creator_id}>`, true)
+			.addField('Creator', creator, true)
 			.addField('Created on', moment(tag.createdAt).format('Do MMM YYYY'), true);
 
 		if (tag.updatedAt && tag.lastContentUpdate.getTime() !== tag.createdAt.getTime()) {
 			embed.addField('Last updated at', moment(tag.updatedAt).format('Do MMM YYYY'), true);
 		}
 
-		embed.addField('Uses', `${tag.uses} use${s(tag.uses)}`, true);
+		embed.addField('Uses', `${tag.uses} use${pluralize(tag.uses)}`, true);
+
+		for (let i = 0; i < (embed.fields.length % 3); i++) embed.addField('\u200b', '\u200b', true);
+
+		embed.addField('Response', preview.length > 1024 ? `${preview.substring(0, 1021)}...` : preview);
 
 		return channel.send(embed);
 	}

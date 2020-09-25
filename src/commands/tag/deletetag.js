@@ -29,22 +29,20 @@ module.exports = class DeleteTag extends StarbotCommand {
 		const { client, args, channel, guild, member } = message;
 
 		if (!args[0]) {
-			return channel.embed('Please provide a tag name!');
+			return channel.send('Please provide a tag name!');
 		}
 
-		const tag = guild.tags.get(guild.id + args[0].toLowerCase());
+		const tag = guild.tags.find(t => t.name === args[0].toLowerCase());
 		if (!tag) {
-			return channel.embed('That tag does not exist!');
+			return channel.send('The provided tag does not exist!');
 		}
 
 		if (tag.creator_id !== member.id && !member.permissions.has('ADMINISTRATOR') && !client.isOwner(member.id)) {
-			return channel.embed('Only an administrator can delete tags that they did not create!');
+			return channel.send('Only an administrator can delete tags that they did not create!');
 		}
 
-		await guild.queue(() => tag.destroy());
+		await client.db.models.Guild.q.add(guild.id, () => tag.destroy());
 
-		this.client.db.cache.Tag.delete(guild.id + args[0].toLowerCase());
-
-		return channel.embed(`The tag \`${args[0].toLowerCase()}\` has been deleted.`);
+		return channel.send(`The tag \`${args[0].toLowerCase()}\` has been deleted.`);
 	}
 };
