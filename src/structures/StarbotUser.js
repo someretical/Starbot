@@ -7,6 +7,14 @@ module.exports = Discord.Structures.extend('User', User => class StarbotUser ext
 		return this.client.db.models.OptOut.cache.has(this.id);
 	}
 
+	get stars() {
+		return this.client.db.models.Star.cache.filter(star => star.author_id === this.id);
+	}
+
+	get model() {
+		return this.client.db.models.User.cache.get(this.id);
+	}
+
 	async findCreateFind() {
 		const cached = this.client.db.models.User.cache.get(this.id);
 		if (cached) return cached;
@@ -28,8 +36,7 @@ module.exports = Discord.Structures.extend('User', User => class StarbotUser ext
 				where: { creator_id: this.id },
 			}, { transaction: t });
 
-			const _user = await this.findCreateFind();
-			this.client.db.models.User.q.add(this.id, () => _user.update({
+			this.client.db.models.User.q.add(this.id, () => this.model.update({
 				id: this.id,
 				coins: 0,
 				reputation: 0,
