@@ -73,7 +73,7 @@ class Starbot extends Discord.Client {
 
 	loadEvents() {
 		const events = fs.readdirSync(path.resolve(__dirname, '..', 'events'))
-			.filter(file => path.extname(file) === '.js');
+			.filter(file => path.extname(file) === '.js' && !file.includes('_'));
 		let counter = 0, eventPath = '', eventName = '';
 
 		for (const event of events) {
