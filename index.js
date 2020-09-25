@@ -8,15 +8,7 @@ require('./src/structures/StarbotUser.js');
 
 const Logger = require('./src/util/Logger.js');
 const Starbot = require('./src/structures/Starbot.js');
-const client = new Starbot({
-	shardCount: 1,
-	messageCacheMaxSize: 200,
-	fetchAllMembers: false,
-	disableEveryone: false,
-	partials: [],
-	disabledEvents: [],
-	retryLimit: 0,
-});
+const client = new Starbot({ retryLimit: 0 });
 
 client.run();
 
