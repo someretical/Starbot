@@ -16,7 +16,6 @@ module.exports = class UnpackID extends StarbotCommand {
 				optional: false,
 				description: 'a discord ID',
 				example: client.owners[0],
-				code: true,
 			}],
 			aliases: ['unpacksnowflake'],
 			userPermissions: [],

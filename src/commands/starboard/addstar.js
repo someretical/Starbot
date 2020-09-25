@@ -3,11 +3,11 @@
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { matchMessageURL } = require('../../util/Util.js');
 
-module.exports = class FixStar extends StarbotCommand {
+module.exports = class AddStar extends StarbotCommand {
 	constructor(client) {
 		super(client, {
-			name: 'fixstar',
-			description: 'fix the starboard embed for a starred message',
+			name: 'addstar',
+			description: 'add a star to a message',
 			group: 'starboard',
 			usage: '<message>',
 			args: [{
@@ -16,17 +16,17 @@ module.exports = class FixStar extends StarbotCommand {
 				description: 'link to a message',
 				example: 'https://discord.com/channels/361736003859513344/732842050516680705/732842074612826112',
 			}],
-			aliases: ['updatestar'],
+			aliases: ['star'],
 			userPermissions: [],
 			clientPermissions: [],
 			guildOnly: true,
 			ownerOnly: false,
-			throttle: 20000,
+			throttle: 5000,
 		});
 	}
 
 	async run(message) {
-		const { args, channel, guild } = message;
+		const { args, author, channel, guild } = message;
 		const invalidURL = () => channel.send('Please provide a valid message URL!');
 
 		if (!args[0]) {
@@ -47,8 +47,19 @@ module.exports = class FixStar extends StarbotCommand {
 		}
 		if (!starMessage) return undefined;
 
-		await guild.starboard.fixStar(starMessage);
+		if (starMessage.author.id === author.id) {
+			return channel.send('You cannot star your own message!');
+		}
 
-		return channel.embed(`${starMessage.author.toString()}'s message has been fixed.`);
+		const star = await guild.starboard.getStars(starMessage.id);
+		if (star) {
+			if (star.reactions.cmd.includes(author.id) || star.reactions.msg.includes(author.id)) {
+				return channel.send('You have already starred this message!');
+			}
+		}
+
+		await guild.starboard.addStar(starMessage, author.id, true);
+
+		return channel.send(`You have added a star to ${starMessage.author.toString()}'s message.`);
 	}
 };

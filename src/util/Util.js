@@ -1,40 +1,32 @@
 'use strict';
 
-const { stripIndents } = require('common-tags');
 const Discord = require('discord.js');
 
 class Util {
-	// Returns an 's' if the number is one
 	static pluralize(number) {
 		return number === 1 ? '' : 's';
 	}
 
-	// Returns yes regex
 	static get yes() {
 		return /^y(?:es)?$/i;
 	}
 
-	// Returns no regex
 	static get no() {
 		return /^no?$/i;
 	}
 
-	// Returns cancel regex
 	static get cancel() {
 		return /^cancel$/i;
 	}
 
-	// Returns skip regex
 	static get skip() {
 		return /^skip$/i;
 	}
 
-	// Returns string with first character capitalised
 	static capitaliseFirstLetter(string) {
 		return string.charAt(0).toUpperCase() + string.slice(1);
 	}
 
-	// Replaces the last comma with an 'and' or ampersand
 	static fancyJoin(string, ampersand = false) {
 		if (string instanceof Array) string = string.join(', ');
 
@@ -45,15 +37,21 @@ class Util {
 		return string;
 	}
 
-	// Returns string ready to be sent
 	static formatErrorDiscord(error, code) {
-		return stripIndents`
-			:( An error occurred has occurred for some reason.
-			Please contact a dev and provide the error stack below:	
-		`.concat(`\n\`\`\`js\nconst code = '${code}';\n${Util.sanitise(error.stack)}\n\`\`\``);
+		return `:( An error has occurred for some reason. Please contact the bot owner and provide the error stack below:`
+			.concat(`\n\`\`\`js\n// ERROR_CODE: ${code}\n\n${Util.sanitise(error.stack)}\n\`\`\``);
 	}
 
-	// Returns sanitised result
+	static async cancelCmd(msg) {
+		await msg.channel.send('The command has been cancelled.');
+		return msg.channel.awaiting.delete(msg.author.id);
+	}
+
+	static async timeUp(msg) {
+		await msg.channel.send('Sorry but the message collector timed out. Please run the command again.');
+		return msg.channel.awaiting.delete(msg.author.id);
+	}
+
 	static sanitise(result, regex = false) {
 		let cleansed = result.toString()
 			.replace(process.env.TOKEN, 'here is the token you retard')
@@ -66,8 +64,6 @@ class Util {
 		return !regex ? cleansed : cleansed.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&');
 	}
 
-	// Mode options: all, has, missing
-	// Returns array of prettified permission flags
 	static prettifyPermissions(perms, autoCap = true, mode = 'all') {
 		if (perms instanceof Discord.Permissions) {
 			perms = Object.entries(perms.serialize());
@@ -86,48 +82,24 @@ class Util {
 		return perms;
 	}
 
-	static paginate(arr, maxPageLength = 1024, joinChar = '\n') {
-		const paged = [];
-		let temp = [];
-
-		while (arr.length) {
-			temp.push(arr.pop());
-
-			if (temp.join(joinChar).length > maxPageLength) {
-				if (temp.length === 1) {
-					paged.push(`${temp[0].slice(0, -maxPageLength - 3)}...`);
-					temp = [];
-				} else {
-					const pushIntoNext = temp.pop();
-
-					paged.push(temp.join(joinChar));
-
-					temp = [pushIntoNext];
-				}
-			}
-		}
-
-		return paged;
-	}
-
 	static matchMessageURL(str, includeChannel = false) {
 		let id, url;
 		try {
 			url = new URL(str);
 		} catch (err) {
-			url = includeChannel ? undefined : (str.match(/^\d+$/) || [])[1];
+			url = includeChannel ? undefined : (str.match(/^(\d+)$/) || [])[1];
 		}
 
 		if (!url) return undefined;
 
-		if (url.prototype instanceof URL) {
+		if (url instanceof URL) {
 			if (!url.pathname) return undefined;
 
-			const [, channel_id, message_id] = url.pathname.match(/\/channels\/\d+\/(\d+)\/(\d+)/) || [];
+			const [, channel_id, message_id] = url.pathname.match(/\/channels\/(?:\d+|@me)\/(\d+)\/(\d+)/) || [];
 			if (!message_id) return undefined;
 
 			if (includeChannel) {
-				return { message_id: message_id, channel_id: channel_id };
+				return { channel_id: channel_id, message_id: message_id };
 			}
 
 			id = message_id;
@@ -138,7 +110,6 @@ class Util {
 		return id;
 	}
 
-	// All functions below return an array with valid ids
 	static matchUsers(str) {
 		if (typeof str !== 'string' || /[^<>@!\d\s]/.test(str)) return [];
 

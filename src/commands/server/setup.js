@@ -2,7 +2,307 @@
 
 const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchChannels, yes: yesRe, no: noRe, cancel: cancelRe, skip: skipRe } = require('../../util/Util.js');
+const { matchChannels, cancelCmd, timeUp, fancyJoin, pluralize,
+	yes, no, cancel, skip } = require('../../util/Util.js');
+
+const askPrefix = async (msg, _guild) => {
+	const updated = {};
+	const question = await msg.channel.send(stripIndents`
+		Please enter the custom prefix for this server. It must be between 1 and 10 characters long.
+		The current prefix is \`${_guild.prefix}\`.
+		
+		Type \`skip\` to skip this step.
+		Type \`cancel\` at any time to stop the process.
+	`);
+	const collector = msg.channel.createMessageCollector(m => m.author.id === msg.author.id, { idle: 15000 });
+
+	collector.on('collect', m => {
+		if (cancel.test(m.content)) return collector.stop('cancel');
+		if (skip.test(m.content)) return collector.stop();
+
+		const sanitised = m.content.trim();
+		if (sanitised.length > 10 || !m.content.length) {
+			return m.channel.send('Please choose a prefix that is between 1 and 10 characters long!');
+		}
+
+		updated.prefix = sanitised;
+		return collector.stop();
+	});
+
+	collector.on('end', async (collected, reason) => {
+		await question.delete();
+
+		if (reason === 'cancel') return cancelCmd(msg);
+		if (reason === 'idle') return timeUp(msg);
+
+		return askTag(msg, _guild, updated);
+	});
+};
+
+const askTag = async (msg, _guild, updated) => {
+	const question = await msg.channel.send(stripIndents`
+		Would you like to ${_guild.tagsEnabled ? 'disable' : 'enable'} tags? 
+		They are currently ${_guild.tagsEnabled ? 'enabled' : 'disabled'}.
+
+		Please type __y__es or __n__o.
+		Type \`cancel\` at any time to stop the process.
+	`);
+	const collector = msg.channel.createMessageCollector(m => m.author.id === msg.author.id, { idle: 15000 });
+
+	collector.on('collect', m => {
+		if (cancel.test(m.content)) return collector.stop('cancel');
+
+		const _yes = yes.test(m.content);
+		const _no = no.test(m.content);
+		if (!_yes && !_no) return m.channel.send('Please provide a __y__es/__n__o answer!');
+
+		updated.tagsEnabled = (_guild.tagsEnabled && _no) || (!_guild.tagsEnabled && _yes);
+		return collector.stop();
+	});
+
+	collector.on('end', async (collected, reason) => {
+		await question.delete();
+
+		if (reason === 'cancel') return cancelCmd(msg);
+		if (reason === 'idle') return timeUp(msg);
+
+		return askIgnoredChannels(msg, _guild, updated);
+	});
+};
+
+const askIgnoredChannels = async (msg, _guild, updated) => {
+	const question = await msg.channel.send(stripIndents`
+		Please type in any text channels you would like the bot to ignore.
+		Both channel mentions and IDs are accepted.
+
+		Type \`done\` when you are done.
+		Type \`cancel\` at any time to stop the process.
+	`);
+	const collector = msg.channel.createMessageCollector(m => m.author.id === msg.author.id, { idle: 15000 });
+
+	collector.on('collect', m => {
+		if (cancel.test(m.content)) return collector.stop('cancel');
+		if (/^done$/i.test(m.content)) return collector.stop();
+
+		const channels = matchChannels(m.content);
+		if (!channels.length) {
+			return m.channel.send('Please provide a valid channel resolvable!');
+		}
+
+		if (channels.some(id => !m.guild.channels.cache.has(id))) {
+			return m.channel.send('One (or more) of the provided channels could not be found.');
+		}
+
+		if (channels.some(id => !['text', 'news'].includes(m.guild.channels.cache.get(id).type))) {
+			return m.channel.send('One (or more) of the provided channels were not text channels.');
+		}
+
+		if (channels.some(id => _guild.ignoredChannels.includes(id))) {
+			return m.channel.send('One (or more) of the provided channels are already blocked.');
+		}
+
+		updated.ignoredChannels = _guild.ignoredChannels.concat(channels);
+
+		return m.channel.send(
+			channels.length === 1 ?
+				`The <#${channels[0]}> channel has been blocked.` :
+				channels.length < 11 ?
+					`The following channels were blocked: ${fancyJoin(channels.map(id => `<#${id}>`))}` :
+					`${channels.length} channels${pluralize(channels.length)} were blocked.`,
+		);
+	});
+
+	collector.on('end', async (collected, reason) => {
+		await question.delete();
+
+		if (reason === 'cancel') return cancelCmd(msg);
+		if (reason === 'idle') return timeUp(msg);
+
+		return askIgnoredRoles(msg, _guild, updated);
+	});
+};
+
+const askIgnoredRoles = async (msg, _guild, updated) => {
+	const question = await msg.channel.send(stripIndents`
+		Please type in any roles you would like the bot to ignore. 
+		Both channel mentions and IDs are accepted.
+
+		Type \`done\` when you are done.
+		Type \`cancel\` at any time to stop the process.
+	`);
+	const collector = msg.channel.createMessageCollector(m => m.author.id === msg.author.id, { idle: 15000 });
+
+	collector.on('collect', m => {
+		if (cancel.test(m.content)) return collector.stop('cancel');
+		if (/^done$/i.test(m.content)) return collector.stop();
+
+		const roles = matchChannels(m.content);
+		if (!roles.length) {
+			return m.channel.send('Please provide a valid role resolvable!');
+		}
+
+		if (roles.some(id => !m.guild.roles.cache.has(id))) {
+			return m.channel.send('One (or more) of the provided roles could not be found.');
+		}
+
+		if (roles.some(id => _guild.ignoredRoles.includes(id))) {
+			return m.channel.send('One (or more) of the provided roles are already blocked.');
+		}
+
+		updated.ignoredRoles = _guild.ignoredRoles.concat(roles);
+
+		return m.channel.send(
+			roles.length === 1 ?
+				m.client.embed(`The <@&${roles[0]}> role has been blocked.`) :
+				roles.length < 11 ?
+					m.client.embed(`The following roles were blocked: ${fancyJoin(roles.map(id => `<@&${id}>`))}`) :
+					`${roles.length} roles${pluralize(roles.length)} were blocked.`,
+		);
+	});
+
+	collector.on('end', async (collected, reason) => {
+		await question.delete();
+
+		if (reason === 'cancel') return cancelCmd(msg);
+		if (reason === 'idle') return timeUp(msg);
+
+		return askStarboard(msg, _guild, updated);
+	});
+};
+
+const askStarboard = async (msg, _guild, updated) => {
+	const question = await msg.channel.send(stripIndents`
+		Would you like to ${_guild.starboardEnabled ? 'disable' : 'enable'} the starboard?
+		The starboard is currently ${_guild.starboardEnabled ? 'enabled' : 'disabled'}.
+
+		Please type __y__es or __n__o.
+		Type \`cancel\` at any time to stop the process.
+	`);
+	const collector = msg.channel.createMessageCollector(m => m.author.id === msg.author.id, { idle: 15000 });
+
+	collector.on('collect', m => {
+		if (cancel.test(m.content)) return collector.stop('cancel');
+
+		const _yes = yes.test(m.content);
+		const _no = no.test(m.content);
+		if (!_yes && !_no) return m.channel.send('Please provide a __y__es/__n__o answer!');
+
+		updated.starboardEnabled = (_guild.starboardEnabled && _no) || (!_guild.starboardEnabled && _yes);
+		return collector.stop(updated.starboardEnabled);
+	});
+
+	collector.on('end', async (collected, reason) => {
+		await question.delete();
+
+		if (reason === 'cancel') return cancelCmd(msg);
+		if (reason === 'idle') return timeUp(msg);
+		if (reason === true) return askStarboardChannel(msg, _guild, updated);
+
+		return finalise(msg, _guild, updated);
+	});
+};
+
+const askStarboardChannel = async (msg, _guild, updated) => {
+	const question = await msg.channel.send(stripIndents`
+		Please set the starboard channel. It must be a non-news text channel.
+		The current starboard ${_guild.starboard_id ? ` is <#${_guild.starboard_id}>.` : 'has not been set yet.'}
+
+		Type \`skip\` to skip this step.
+		Type \`cancel\` at any time to stop the process.
+	`);
+	const collector = msg.channel.createMessageCollector(m => m.author.id === msg.author.id, { idle: 15000 });
+
+	collector.on('collect', m => {
+		if (cancel.test(m.content)) return collector.stop('cancel');
+		if (skip.test(m.content)) return collector.stop();
+
+		const channel = m.guild.channels.cache.get(matchChannels(m.content)[0]);
+		if (!channel) {
+			return m.channel.send('Please provide a valid channel resolvable!');
+		}
+
+		if (!['text'].includes(channel.type)) {
+			return m.channel.send('Please provide a **text** channel!');
+		}
+
+		if (_guild.starboard_id === channel.id) {
+			return m.channel.send(`<#${channel.id}> is already the starboard!`);
+		}
+
+		updated.starboard_id = channel.id;
+		return collector.stop();
+	});
+
+	collector.on('end', async (collected, reason) => {
+		await question.delete();
+
+		if (reason === 'cancel') return cancelCmd(msg);
+		if (reason === 'idle') return timeUp(msg);
+
+		return askReactionThreshold(msg, _guild, updated);
+	});
+};
+
+const askReactionThreshold = async (msg, _guild, updated) => {
+	const question = await msg.channel.send(stripIndents`
+		Please set the number of stars a message needs in order to be posted on the starboard.
+		The current reaction threshold is ${_guild.reactionThreshold} ⭐.
+
+		Type \`skip\` to skip this step.
+		Type \`cancel\` at any time to stop the process.
+	`);
+	const collector = msg.channel.createMessageCollector(m => m.author.id === msg.author.id, { idle: 15000 });
+
+	collector.on('collect', m => {
+		if (cancel.test(m.content)) return collector.stop('cancel');
+		if (skip.test(m.content)) return collector.stop();
+
+		const limit = parseInt(m.content);
+		if (Number.isNaN(limit) || !Number.isSafeInteger(limit) || limit < 1) {
+			return m.channel.send('Please provide a valid integer larger than 0!');
+		}
+
+		if (_guild.reactionThreshold === limit) {
+			return m.channel.send(`The limit is already ${limit} ⭐!`);
+		}
+
+		updated.reactionThreshold = limit;
+		return collector.stop();
+	});
+
+	collector.on('end', async (collected, reason) => {
+		await question.delete();
+
+		if (reason === 'cancel') return cancelCmd(msg);
+		if (reason === 'idle') return timeUp(msg);
+
+		return finalise(msg, _guild, updated);
+	});
+};
+
+const finalise = async (msg, _guild, updated) => {
+	await msg.client.db.models.Guild.q.add(msg.guild.id, () => _guild.update(updated));
+
+	const roles = _guild.ignoredRoles.length;
+	const users = _guild.ignoredUsers.length;
+	const channels = _guild.ignoredChannels.length;
+	const embed = msg.client.embed(null, true)
+		.setTitle(`Settings for ${msg.guild.name}`)
+		.setThumbnail(msg.guild.iconURL())
+		.addField('Prefix', `\`${_guild.prefix}\``, true)
+		.addField('Starboard', _guild.starboard_id ? `<#${_guild.starboard_id}>` : 'None', true)
+		.addField('Starboard enabled?', _guild.starboardEnabled ? 'Yes' : 'No', true)
+		.addField('Reaction threshold', `${_guild.reactionThreshold} ⭐`, true)
+		.addField('Tags enabled?', _guild.tagsEnabled ? 'Yes' : 'No', true)
+		.addField('Ignored roles', `${roles} role${pluralize(roles)}`, true)
+		.addField('Ignored users', `${users} user${pluralize(users)}`, true)
+		.addField('Ignored channels', `${channels} channel${pluralize(channels)}`, true)
+		.addField('\u200b', '\u200b', true);
+
+	await msg.channel.send(embed);
+
+	return msg.channel.awaiting.delete(msg.author.id);
+};
 
 module.exports = class Setup extends StarbotCommand {
 	constructor(client) {
@@ -22,331 +322,8 @@ module.exports = class Setup extends StarbotCommand {
 	}
 
 	run(message) {
-		const { client, author, channel, guild } = message;
-		const filter = msg => msg.author.id === author.id;
-		const options = { time: 15000 };
-		const upsertObj = guild.settings.toJSON();
-		upsertObj.ignoredChannels = JSON.parse(upsertObj.ignoredChannels);
+		message.channel.awaiting.add(message.author.id);
 
-		channel.awaiting.add(author.id);
-
-		return askPrefix();
-
-		function cancel() {
-			const embed = client.embed(null, true)
-				.setTitle(`Setup wizard for ${guild.name}`)
-				.setDescription('The setup process has been successfully cancelled. All changes have been discarded.');
-
-			channel.send(embed);
-
-			return channel.awaiting.delete(author.id);
-		}
-
-		function timeUp() {
-			const embed = client.embed(null, true)
-				.setTitle(`Setup wizard for ${guild.name}`)
-				.setDescription('Sorry but the message collector timed out. Please run the command again.');
-
-			channel.send(embed);
-
-			return channel.awaiting.delete(author.id);
-		}
-
-		async function askPrefix() {
-			const embed = client.embed(null, true)
-				.setTitle(`Setup wizard for ${guild.name}`)
-				.setDescription(stripIndents`
-					Please enter the custom prefix for this server. It must be between 1 and 10 characters long.
-					The current prefix is \`${upsertObj.prefix}\`.
-					Type \`skip\` to skip this step.
-					Type \`cancel\` at any time to stop the process.
-				`);
-
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, options);
-
-			collector.on('collect', msg => {
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
-
-				if (skipRe.test(msg.content)) {
-					return collector.stop();
-				}
-
-				const sanitised = msg.content.trim();
-				if (sanitised.length > 10 || !msg.content.length) {
-					return channel.embed('Please choose a prefix that is between 1 and 10 characters long!');
-				}
-
-				upsertObj.prefix = sanitised;
-				return collector.stop();
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				return askTag(reason);
-			});
-		}
-
-		async function askTag() {
-			const embed = client.embed(null, true)
-				.setTitle(`Setup wizard for ${guild.name}`)
-				.setDescription(stripIndents`
-					Would you like to ${upsertObj.tagsEnabled ? 'disable' : 'enable'} tags? Please type yes or no.
-					They are currently ${upsertObj.tagsEnabled ? 'enabled' : 'disabled'}.				
-					Type \`skip\` to skip this step.
-					Type \`cancel\` at any time to stop the process.
-				`);
-
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, options);
-
-			collector.on('collect', msg => {
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
-
-				if (skipRe.test(msg.content)) {
-					return collector.stop();
-				}
-
-				const yes = yesRe.test(msg.content);
-				const no = noRe.test(msg.content);
-				if (!yes && !no) {
-					return channel.embed('Please provide a yes/no answer!');
-				}
-
-				if ((upsertObj.tagsEnabled && yes) || (!upsertObj.tagsEnabled && no)) {
-					upsertObj.tagsEnabled = false;
-				} else if ((upsertObj.tagsEnabled && no) || (!upsertObj.tagsEnabled && yes)) {
-					upsertObj.tagsEnabled = true;
-				}
-
-				return collector.stop();
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				return askIgnoredChannels(reason);
-			});
-		}
-
-		async function askIgnoredChannels() {
-			const embed = client.embed(null, true)
-				.setTitle(`Setup wizard for ${guild.name}`)
-				.setDescription(stripIndents`
-					Please type in any text channels you would like the bot to ignore. Both channel mentions and IDs are accepted.
-					You will have 60 seconds in this wizard to add all the channels.
-					Type \`done\` when you are done.
-					Type \`cancel\` at any time to stop the process.
-				`);
-
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, { time: 60000 });
-
-			collector.on('collect', msg => {
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
-
-				if (/^done$/i.test(msg.content)) {
-					return collector.stop();
-				}
-
-				const channel_ = guild.channels.cache.get(matchChannels(msg.content)[0]);
-				if (!channel_ || !['text', 'news'].includes(channel_.type)) {
-					return channel.embed('Please provide a valid channel resolvable!');
-				}
-
-				if (upsertObj.ignoredChannels.includes(channel_.id)) {
-					return channel.embed(`${channel_.toString()} is already ignored by the bot!`);
-				}
-
-				upsertObj.ignoredChannels.push(channel_.id);
-
-				return channel.embed(`${channel_.toString()} has been added to the ignore list.`);
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				return askStarboard();
-			});
-		}
-
-		async function askStarboard() {
-			const embed = client.embed(null, true)
-				.setTitle(`Setup wizard for ${guild.name}`)
-				.setDescription(stripIndents`
-					Would you like to ${upsertObj.starboardEnabled ? 'disable' : 'enable'} the starboard? Please type yes or no.
-					The starboard is currently ${upsertObj.starboardEnabled ? 'enabled' : 'disabled'}.				
-					Type \`skip\` to skip this step.
-					Type \`cancel\` at any time to stop the process.
-				`);
-
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, options);
-
-			collector.on('collect', msg => {
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
-
-				if (skipRe.test(msg.content)) {
-					return collector.stop();
-				}
-
-				const yes = yesRe.test(msg.content);
-				const no = noRe.test(msg.content);
-				if (!yes && !no) {
-					return channel.embed('Please provide a yes/no answer!');
-				}
-
-				if ((upsertObj.starboardEnabled && yes) || (!upsertObj.starboardEnabled && no)) {
-					upsertObj.starboardEnabled = false;
-				} else if ((upsertObj.starboardEnabled && no) || (!upsertObj.starboardEnabled && yes)) {
-					upsertObj.starboardEnabled = true;
-				}
-
-				return collector.stop();
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				if (upsertObj.starboardEnabled) return askStarboardChannel();
-
-				return finalise();
-			});
-		}
-
-		async function askStarboardChannel() {
-			const starboard = guild.starboard.channel;
-			const embed = client.embed(null, true)
-				.setTitle(`Setup wizard for ${guild.name}`)
-				.setDescription(stripIndents`
-					Please set the starboard channel. It must be a non-news text channel.
-					${starboard ? `The current starboard is ${starboard.toString()}.` : 'It has not been set yet.'}
-					Type \`skip\` to skip this step.
-					Type \`cancel\` at any time to stop the process.
-				`);
-
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, options);
-
-			collector.on('collect', msg => {
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
-
-				if (skipRe.test(msg.content)) {
-					return collector.stop();
-				}
-
-				const channel_ = guild.channels.cache.get(matchChannels(msg.content)[0]);
-				if (!channel_ || !channel_.type !== 'text') {
-					return channel.embed('Sorry but the bot couldn\'t find that channel.');
-				}
-
-				upsertObj.starboard_id = channel_.id;
-
-				return collector.stop();
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				return askReactionThreshold();
-			});
-		}
-
-		async function askReactionThreshold() {
-			const embed = client.embed(null, true)
-				.setTitle(`Setup wizard for ${guild.name}`)
-				.setDescription(stripIndents`
-					Please set the number of stars a message needs in order to be posted on the starboard.
-					The current reaction threshold is ${upsertObj.reactionThreshold} ⭐.
-					Type \`skip\` to skip this step.
-					Type \`cancel\` at any time to stop the process.
-				`);
-
-			const question = await channel.send(embed);
-			const collector = channel.createMessageCollector(filter, options);
-
-			collector.on('collect', msg => {
-				if (cancelRe.test(msg.content)) {
-					return collector.stop('cancel');
-				}
-
-				if (skipRe.test(msg.content)) {
-					return collector.stop();
-				}
-
-				const limit = parseInt(msg.content);
-				if (Number.isNaN(limit) || !Number.isSafeInteger(limit) || limit < 1) {
-					return channel.embed('Please provide a valid integer!');
-				}
-
-				upsertObj.reactionThreshold = limit;
-
-				return collector.stop();
-			});
-
-			collector.on('end', async (collected, reason) => {
-				await question.delete();
-
-				if (reason === 'cancel') return cancel();
-				if (reason === 'time') return timeUp();
-
-				return finalise();
-			});
-		}
-
-		async function finalise() {
-			let displayedChannels = (upsertObj.ignoredChannels.length < 11 ?
-				upsertObj.ignoredChannels :
-				upsertObj.ignoredChannels.slice(0, -upsertObj.ignoredChannels.length + 10))
-				.map(id => `<#${id}>`)
-				.join(', ');
-
-			if (upsertObj.ignoredChannels.length > 10) displayedChannels += '...';
-
-			upsertObj.ignoredChannels = JSON.stringify(upsertObj.ignoredChannels);
-			const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert(upsertObj));
-
-			client.db.cache.Guild.set(guild.id, updatedGuild);
-
-			const embed = client.embed(null, true)
-				.setTitle(`Settings for ${guild.name}`)
-				.setThumbnail(guild.iconURL())
-				.addField('Prefix', `\`${upsertObj.prefix}\``, true)
-				.addField('Starboard', upsertObj.starboard_id ? `<#${upsertObj.starboard_id}>` : 'None', true)
-				.addField('Starboard enabled?', upsertObj.starboardEnabled ? 'Yes' : 'No', true)
-				.addField('Reaction threshold', `${upsertObj.reactionThreshold} ⭐`, true)
-				.addField('Tags enabled?', upsertObj.tagsEnabled ? 'Yes' : 'No', true)
-				.addField('Ignored channels', displayedChannels, true);
-
-			await channel.send(embed);
-
-			return channel.awaiting.delete(author.id);
-		}
+		return askPrefix(message, message.guild.model);
 	}
 };

@@ -75,6 +75,6 @@ module.exports = class DataCollection extends StarbotCommand {
 				`}
 			`);
 
-		channel.embed(embed);
+		channel.send(embed);
 	}
 };

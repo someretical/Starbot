@@ -1,8 +1,6 @@
 'use strict';
 
-const { capitaliseFirstLetter } = require('../util/Util.js');
-
-const events = [
+const EVENTS = [
 	'MESSAGE_UPDATE',
 	'MESSAGE_DELETE',
 	'MESSAGE_DELETE_BULK',
@@ -12,27 +10,17 @@ const events = [
 	'MESSAGE_REACTION_REMOVE_EMOJI',
 ];
 
-module.exports = (client, packet) => {
+module.exports = async (client, packet) => {
 	const { t: eventName, d: data } = packet;
-	if (!data || !client.ready) return undefined;
-
-	if (eventName === 'USER_UPDATE') {
-		return client.emit('userUpdateRaw', {
-			...data,
-		});
-	}
-
-	if (!events.includes(eventName)) return undefined;
+	if (!data || !client._ready || !EVENTS.includes(eventName)) return undefined;
 
 	const guild = client.guilds.cache.get(data.guild_id);
-	if (!data.guild_id || !guild || !guild.available) return undefined;
+	const channel = client.channels.cache.get(data.channel_id);
+	const emoji = data.emoji;
 
-	const formatted = `${eventName
-		.split('_')
-		.map((word, index) => `${index === 0 ? word.toLowerCase() : capitaliseFirstLetter(word.toLowerCase())}`)
-		.join('')}Raw`;
+	if (guild) await guild.findCreateFind();
+	if (!guild || !guild.available || !channel || await channel.ignored()) return undefined;
+	if (emoji && emoji.name !== '⭐') return undefined;
 
-	return client.emit(formatted, {
-		...data,
-	});
+	return client.emit(eventName, data, guild, channel);
 };

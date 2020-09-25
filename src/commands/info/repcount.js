@@ -14,6 +14,7 @@ module.exports = class RepCount extends StarbotCommand {
 				name: '<user>',
 				optional: true,
 				description: 'a user mention or ID',
+				defaultValue: 'message author',
 				example: `<@${client.owners[0]}>`,
 				code: false,
 			}],
@@ -26,22 +27,19 @@ module.exports = class RepCount extends StarbotCommand {
 		});
 	}
 
-	async run(message) {
+	run(message) {
 		const { client, args, author, channel } = message;
-		const invalid = () => channel.embed('Please provide a valid user resolvable!');
 
-		if (!args[0]) return invalid();
-
-		let user;
-		try {
-			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
-		} catch (err) {
-			return invalid();
+		if (!args[0]) {
+			return channel.send('Please provide a valid user resolvable!');
 		}
 
-		await user.add();
+		const user = client.db.models.User.cache.get(!args[0] ? author.id : matchUsers(args[0])[0]);
+		if (!user) {
+			return channel.send('The bot has not yet created a record for the specified user.');
+		}
 
-		const text = user.id === author.id ? 'You have' : `${user.toString()} has`;
+		const text = user.id === author.id ? 'You have' : `<@${user.id}> has`;
 		return channel.embed(`${text} ${user.data.reputation} reputation.`);
 	}
 };

@@ -2,20 +2,36 @@
 
 const { oneLine } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchChannels } = require('../../util/Util.js');
 
 module.exports = class Starboard extends StarbotCommand {
 	constructor(client) {
 		super(client, {
 			name: 'starboard',
-			description: 'enable or disable the starboard',
+			description: `change starboard settings, use \`${client.prefix}viewsettings\` to see settings`,
 			group: 'starboard',
-			usage: '<boolean>',
+			usage: '<setting> <value>',
 			args: [{
-				name: '<boolean>',
+				name: '<setting>',
 				optional: false,
-				description: 'a literal boolean, `enable` or `disable`',
-				example: 'enable',
-				code: true,
+				description: 'one of the following: enabled, threshold, channel',
+				example: 'enabled',
+			}, {
+				name: 'enabled <value>',
+				optional: false,
+				description: 'yes/no',
+				example: 'yes',
+			}, {
+				name: 'threshold <value>',
+				optional: false,
+				description: 'an integer larger than 0',
+				example: '2',
+			}, {
+				name: 'channel <value>',
+				optional: false,
+				description: 'a channel mention or ID',
+				example: `<#${client.owners[0]}>`,
+				code: false,
 			}],
 			aliases: ['sb'],
 			userPermissions: ['MANAGE_GUILD'],
@@ -30,26 +46,62 @@ module.exports = class Starboard extends StarbotCommand {
 		const { client, args, channel, guild } = message;
 
 		if (!args[0]) {
-			return channel.embed('Please provide a boolean resolvable!');
+			return channel.send('Please provide a setting to change!');
 		}
 
-		let boolean = (args[0].match(/^(e(?:nabled?)?|d(?:isabled?)|true|false|1|0)$/i) || [])[1];
-		if (!boolean) {
-			return channel.embed('Please provide a valid boolean resolvable!');
+		const setting = (args[0].match(/^(enabled|threshold|channel)$/i) || [])[1];
+		if (!setting) {
+			return channel.send('Please provide a valid setting!');
 		}
 
-		boolean = Boolean(/^e(?:nabled?)?$/i.test(boolean) ? true : /^d(?:isabled?)?$/i.test(boolean) ? false : boolean);
+		if (!args[1]) {
+			return channel.send('Please provide a new value for the setting!');
+		}
 
-		const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert({
-			id: guild.id,
-			starboardEnabled: boolean,
-		}));
+		const _guild = guild.model;
+		if (setting === 'enabled') {
+			let boolean = (args[1].match(/^(y(?:es)?|no?)$/i) || [])[1];
+			if (!boolean) {
+				return channel.send('Please provide a valid boolean resolvable!');
+			}
 
-		client.db.cache.Guild.set(guild.id, updatedGuild);
+			boolean = boolean.startsWith('y');
 
-		return channel.embed(oneLine`
-			The starboard for this server has been ${boolean ? 'enabled' : 'disabled'}.
-			Make sure to also set the starboard channel so the bot posts starred messages.
-		`);
+			if (_guild.starboardEnabled !== boolean) {
+				await client.db.models.Guild.q.add(guild.id, () => _guild.update({ starboardEnabled: boolean }));
+			}
+
+			return channel.send(oneLine`
+				The starboard for this server has been ${boolean ? 'enabled' : 'disabled'}.
+				Make sure to also set the starboard channel so the bot posts starred messages.
+			`);
+		} else if (setting === 'threshold') {
+			const threshold = parseInt(args[1]);
+
+			if (Number.isNaN(threshold) || !Number.isSafeInteger(threshold) || threshold < 1) {
+				return channel.send('Please provide a valid integer!');
+			}
+
+			if (_guild.reactionThreshold !== threshold) {
+				await client.db.models.Guild.q.add(guild.id, () => _guild.update({ reactionThreshold: threshold }));
+			}
+
+			return channel.send(`The reaction threshold for this server has been set to ${threshold} ⭐.`);
+		} else {
+			const starboard = guild.channels.cache.get(matchChannels(args[1])[0]);
+			if (!starboard) {
+				return channel.send('Sorry but the bot couldn\'t find that channel.');
+			}
+
+			if (starboard.type !== 'text') {
+				return channel.send('Please provide a **text** channel!');
+			}
+
+			if (_guild.starboard_id !== starboard.id) {
+				await client.db.models.Guild.q.add(guild.id, () => _guild.update({ starboard_id: starboard.id }));
+			}
+
+			return channel.send(`The channel ${starboard.toString()} has been set as the starboard.`);
+		}
 	}
 };

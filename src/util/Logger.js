@@ -1,44 +1,37 @@
 'use strict';
 
-const chalk = require('chalk');
 const moment = require('moment');
 const { inspect } = require('util');
 
 class Logger {
 	static log(...args) {
-		for (let arg of args) {
-			arg = inspect(arg).toString().trim();
-
-			for (const line of arg.split(/\n/g)) {
-				console.log(`<${moment().format('HH:mm')}> ${chalk.bgWhite.black('[DEBUG]')} ${line}`);
-			}
-		}
+		args.map(arg => Logger.write(inspect(arg).toString(), '\u001b[40m\u001b[37m[DEBUG]\u001b[0m'));
 	}
 
 	static info(message) {
-		console.log(`<${moment().format('HH:mm')}> ${chalk.bgGreen('[INFO]')} ${message}`);
+		Logger.write(message, '\u001b[42m[INFO]\u001b[0m');
 	}
 
-	static warn(message, ...args) {
-		console.log(`<${moment().format('HH:mm')}> ${chalk.bgYellow('[INFO]')} Error: ${message}`);
-
-		for (let arg of args) {
-			arg = arg.toString().trim();
-
-			for (const line of arg.split(/\n/g)) {
-				if (!line.test(/\S/)) continue;
-
-				console.log(`<${moment().format('HH:mm')}> ${chalk.bgYellow('[WARN]')} ${line}`);
-			}
-		}
+	static warn(message) {
+		Logger.write(message, '\u001b[43m[WARN]\u001b[0m');
 	}
 
-	static err(error, message) {
-		if (message) console.log(`<${moment().format('HH:mm')}> ${chalk.bgRed('[ERROR]')} Message: ${message}`);
+	static err(message) {
+		Logger.write(message, '\u001b[41m[ERROR]\u001b[0m', true);
+	}
 
-		for (const line of error.stack.split(/\n/g)) {
-			console.log(`<${moment().format('HH:mm')}> ${chalk.bgRed('[ERROR]')} ${line}`);
-		}
+	static stack(err) {
+		Logger.write(err.stack, '\u001b[41m[STACK]\u001b[0m', true);
+	}
+
+	static write(content, type, error = false) {
+		const lines = content.split(/\r?\n/g);
+		const timeNow = `<${moment().format('HH:mm')}>`;
+		lines.map(line =>
+			line.length ?
+				(error ? process.stderr : process.stdout).write(`${timeNow} ${type} ${line}\r\n`) :
+				undefined,
+		);
 	}
 }
 

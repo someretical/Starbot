@@ -1,9 +1,8 @@
 'use strict';
 
 const { stripIndents } = require('common-tags');
-const moment = require('moment');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { matchUsers, yes, no } = require('../../util/Util.js');
+const { matchUsers, cancelCmd, timeUp, yes, no } = require('../../util/Util.js');
 
 module.exports = class PurgeData extends StarbotCommand {
 	constructor(client) {
@@ -16,6 +15,7 @@ module.exports = class PurgeData extends StarbotCommand {
 				name: '<user>',
 				optional: true,
 				description: 'owner only flag - a valid user mention or ID',
+				defaultValue: 'none',
 				example: `<@${client.owners[0]}>`,
 				code: false,
 			}],
@@ -30,57 +30,60 @@ module.exports = class PurgeData extends StarbotCommand {
 
 	async run(message) {
 		const { client, args, author, channel, command } = message;
-		let user;
-
-		const throttleDuration = command.checkThrottle(message, 'purgedata');
-		if (throttleDuration && !client.isOwner(author.id)) {
-			const timeLeft = moment(throttleDuration).fromNow(true);
-
-			return channel.embed(`You can purge your data in ${timeLeft}. Please be patient.`);
-		}
-
+		if (await command.checkThrottle(message, 'purgedata')) return undefined;
 
 		if (client.isOwner(author.id)) {
-			try {
-				user = await client.users.fetch(matchUsers(args[0])[0]);
+			const id = matchUsers(args[0])[0];
 
-				await user.add();
-				// eslint-disable-next-line no-empty
-			} catch (err) {}
-
+			const user = client.db.models.User.cache.get(id);
 			if (!user) {
-				return channel.embed('Please provide a valid user resolvable!');
+				return channel.send('The specified user has not been added yet.');
 			}
 
-			await user.purgeData();
+			channel.awaiting.add(author.id);
+			const question = await channel.send(stripIndents`
+				Please confirm the following ID: \`${id}\`
 
-			return channel.embed(`${user.toString()} has had their data purged.`);
+				Type __y__es to confirm or __n__o to cancel the command.
+			`);
+			const collector = channel.createMessageCollector(msg => msg.author.id === author.id, { idle: 15000 });
+
+			collector.on('collect', msg => {
+				const no_ = no.test(msg.content);
+				if (no_) return collector.stop('no');
+				if (!yes.test(msg.content) && !no_) return channel.send('Please provide a __y__es/__n__o response!');
+
+				return collector.stop();
+			});
+
+			collector.on('end', async (collected, reason) => {
+				channel.awaiting.delete(author.id);
+				await question.delete();
+
+				if (reason === 'no') return cancelCmd(message);
+				if (reason === 'idle') return timeUp(message);
+
+				const purging = await channel.embed(`Purging ${user.toString()}'s data... (this might take a while)`);
+				await user.purgeData();
+				return purging.edit(client.embed(`${user.toString()} has had their data purged.`));
+			});
+
+			return undefined;
 		}
 
-		user = author;
+		const question = await channel.send(stripIndents`
+			Purging your data will delete all data that belongs to you and reset your profile.
+			Run \`${client.prefix}datacollection\` to see what data will be deleted.
+			If you want to opt out, use the \`${client.prefix}opt-out\` command instead.
 
-		const confirmEmbed = client.embed(null, true)
-			.setTitle(`Confirm your action`)
-			.setDescription(stripIndents`
-				Purging your data will delete all data that belongs to you (see \`${client.prefix}datacollection\`)
-				Your profile will also be reset.
-				If you want to opt out, use the \`${client.prefix}opt-out\` command.
-
-				Type \`y(es)\` to proceed or \`n(o)\` to cancel this command.
-			`);
-
-		const question = await channel.send(confirmEmbed);
-		const collector = channel.createMessageCollector(msg => msg.author.id === author.id, { time: 15000 });
+			Type __y__es to proceed or __n__o to cancel this command.
+		`);
+		const collector = channel.createMessageCollector(msg => msg.author.id === author.id, { idle: 15000 });
 
 		collector.on('collect', msg => {
 			const no_ = no.test(msg.content);
-			if (no_.test(msg.content)) {
-				return collector.stop('no');
-			}
-
-			if (!yes.test(msg.content) && !no_) {
-				return msg.channel.embed('Please provide a yes/no response!');
-			}
+			if (no_.test(msg.content)) return collector.stop('no');
+			if (!yes.test(msg.content) && !no_) return msg.channel.embed('Please provide a __y__es/__n__o response!');
 
 			return collector.stop();
 		});
@@ -88,32 +91,15 @@ module.exports = class PurgeData extends StarbotCommand {
 		collector.on('end', async (collected, reason) => {
 			await question.delete();
 
-			if (reason === 'no') {
-				const embed = client.embed(null, true)
-					.setTitle(`Confirm your action`)
-					.setDescription('The command has been cancelled.');
+			if (reason === 'no') return cancelCmd(message);
+			if (reason === 'time') return timeUp(message);
 
-				channel.send(embed);
-
-				return channel.awaiting.delete(author.id);
-			}
-
-			if (reason === 'time') {
-				const embed = client.embed(null, true)
-					.setTitle(`Confirm your action`)
-					.setDescription('Sorry but the message collector timed out. Please run the command again.');
-
-				channel.send(embed);
-
-				return channel.awaiting.delete(author.id);
-			}
-
-			await user.purgeData();
-			await command.globalThrottle(message, 'addcoins', 604800000);
-
-			return channel.embed(`You have successfully purged your data.`);
+			const purging = await channel.send('Purging your data... (this might take a while)');
+			await author.purgeData();
+			return purging.edit('You have successfully purged your data.');
 		});
 
-		return channel.awaiting.delete(author.id);
+		channel.awaiting.delete(author.id);
+		return command.customThrottle(message, 'purgedata', 86400000);
 	}
 };

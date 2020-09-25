@@ -3,6 +3,7 @@
 const moment = require('moment');
 const { capitaliseFirstLetter: cfl, pluralize, matchUsers } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { getStarEmoji } = require('../../structures/Starboard.js');
 
 module.exports = class UserInfo extends StarbotCommand {
 	constructor(client) {
@@ -15,7 +16,9 @@ module.exports = class UserInfo extends StarbotCommand {
 				name: '<user>',
 				optional: true,
 				description: 'a user mention or ID',
-				example: client.owners[0],
+				defaultValue: 'message author',
+				example: `<@${client.owners[0]}>`,
+				code: false,
 			}],
 			aliases: ['user'],
 			userPermissions: [],
@@ -28,24 +31,21 @@ module.exports = class UserInfo extends StarbotCommand {
 
 	async run(message) {
 		const { client, args, author, channel, guild } = message;
-		const invalid = () => channel.embed('Please provide a valid user resolvable!');
-
-		if (!args[0]) return invalid();
-
 		let user, member;
+
+		if (!args[0]) {
+			user = author;
+			member = message.member;
+		}
+
 		try {
 			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
 
-			if (guild) {
-				member = await guild.members.fetch(user.id);
-			}
+			if (guild) member = await guild.members.fetch(user.id);
 		} catch (err) {
-			return invalid();
+			return channel.send('Please provide a valid user resolvable!');
 		}
 
-		await user.add();
-
-		const data = user.data;
 		const embed = client.embed()
 			.setAuthor(user.tag, user.avatarURL(), `https://discord.com/channels/@me/${user.id}`)
 			.setThumbnail(user.avatarURL())
@@ -58,19 +58,39 @@ module.exports = class UserInfo extends StarbotCommand {
 			.addField('Presence', cfl(user.presence.status), true);
 
 		if (guild) {
-			const boostDate = member.premiumSince ?
-				moment(member.premiumSince).format('dddd, MMMM Do YYYY, h:mm:ss a') :
-				'None';
+			embed.addField('Joined at', moment(member.joinedAt).format('dddd, MMMM Do YYYY, h:mm:ss a'), true);
 
-			embed.addField('Joined at', moment(member.joinedAt).format('dddd, MMMM Do YYYY, h:mm:ss a'), true)
-				.addField('Nickname', member.nickname || 'None', true)
-				.addField('Roles', `${member.roles.cache.size} role${pluralize(member.roles.cache.size)}`, true)
-				.addField('Display colour', member.displayHexColor, true)
-				.addField('Last boost date', boostDate, true);
+			if (member.nickname) embed.addField('Nickname', member.nickname, true);
+
+			embed.addField('Roles', `${member.roles.cache.size} role${pluralize(member.roles.cache.size)}`, true);
+
+			if (member.displayHexColor !== '#000000') embed.addField('Display colour', member.displayHexColor, true);
+			if (member.premiumSince) {
+				embed.addField('Last boost date', moment(member.premiumSince).format('dddd, MMMM Do YYYY, h:mm:ss a'), true);
+			}
 		}
 
-		embed.addField('Coins', `${data.coins} coin${pluralize(data.coins)}`, true)
-			.addField('Reputation', `${data.reputation} reputation`, true);
+		const data = await user.findCreateFind();
+		if (data) {
+			embed.addField('Coins', `${data.coins} coin${pluralize(data.coins)}`, true)
+				.addField('Reputation', `${data.reputation} reputation`, true);
+
+			if (guild) {
+				const localStarCount = guild.stars
+					.filter(star => star.author_id === user.id)
+					.reduce((a, b) => (a.totalStarCount || 0) + b.totalStarCount, 0);
+
+				embed.addField('Local star count', `${localStarCount} ${getStarEmoji(localStarCount)}`, true);
+			}
+
+			const globalStarCount = client.db.models.Star.cache
+				.filter(star => star.author_id === user.id)
+				.reduce((a, b) => (a.totalStarCount || 0) + b.totalStarCount, 0);
+
+			embed.addField('Global star count', `${globalStarCount} ${getStarEmoji(globalStarCount)}`, true);
+		}
+
+		for (let i = 0; i < (embed.fields.length % 3); i++) embed.addField('\u200b', '\u200b', true);
 
 		return channel.send(embed);
 	}

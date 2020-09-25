@@ -1,15 +1,14 @@
 'use strict';
 
-const path = require('path');
 const { Collection } = require('discord.js');
 const moment = require('moment');
 const Logger = require('../util/Logger.js');
-const StarbotQueue = require('./StarbotQueue.js');
 
 class StarbotCommand {
 	constructor(client, info) {
 		this.client = client;
-		this.path = path.resolve(`./src/commands/${this.group}/${this.name}.js`);
+		this.throttles = new Collection();
+
 		this.name = info.name;
 		this.description = info.description;
 		this.group = info.group;
@@ -19,108 +18,82 @@ class StarbotCommand {
 		this.guildOnly = info.guildOnly;
 		this.ownerOnly = info.ownerOnly;
 		this.userPermissions = info.userPermissions;
-		this.clientPermissions = [];
+		this.clientPermissions = info.clientPermissions;
 		this.throttleDuration = info.throttle;
-		this.queues = new Collection();
-		this.throttles = new Collection();
+		this.path = require('path').resolve(__dirname, '..', 'commands', info.group, `${info.name}.js`);
 	}
 
 	reload() {
-		try {
-			delete require.cache[this.path];
+		delete require.cache[this.path];
+		this.client.commands.set(this.name, require(this.path));
 
-			this.client.commands.set(this.name, require(this.path));
-
-			return Logger.info(`Reloaded ${this.name} command`);
-		} catch (err) {
-			return err;
-		}
+		Logger.info(`Reloaded ${this.name} command`);
 	}
 
 	unload() {
 		if (!require.cache[this.path]) return;
-
 		delete require.cache[this.path];
-
 		this.client.commands.delete(this.name);
 
 		Logger.info(`Unloaded ${this.name} command`);
 	}
 
-	queue(key, promiseFunction) {
-		let queue = this.queues.get(key);
+	async checkThrottle(message, command = '') {
+		const { author, guild } = message;
 
-		if (!queue) {
-			this.queues.set(key, new StarbotQueue());
+		if (command) {
+			const user = author.model;
+			const endsAt = user.throttles[command];
 
-			queue = this.queues.get(key);
-		}
-
-		return new Promise((resolve, reject) => {
-			queue.add(() => promiseFunction().then(value => {
-				if (!queue.length) this.queues.delete(key);
-
-				resolve(value);
-			}).catch(err => {
-				reject(err);
-
-				throw err;
-			}));
-		});
-	}
-
-	checkThrottle(message, command = '') {
-		const { client, author, guild } = message;
-
-		if (guild && command) {
-			const throttle = client.db.cache.GlobalThrottle.get(author.id + command);
-			if (throttle) {
-				const now = Date.now();
-				const endsAt = moment(throttle.endsAt).valueOf();
-
-				if (endsAt > now) {
-					return endsAt;
-				} else {
-					this.queue(author.id + command, () => throttle.destroy());
-				}
+			if (!endsAt) return undefined;
+			if (endsAt > Date.now()) {
+				const timeLeft = moment(endsAt).fromNow(true);
+				return message.channel.send(`Please wait ${timeLeft} to run this command again.`);
 			}
+
+			const copy = user.toJSON().throttles;
+			delete copy[command];
+			await this.client.db.models.User.q.add(author.id, () => user.update({ throttles: copy }));
+
+			return undefined;
 		}
 
-		const throttle = this.throttles.get(guild ? author.id + guild.id + this.name : author.id + this.name);
-		if (throttle) return throttle.endsAt;
+		const throttle = this.throttles.get(guild ? author.id + guild.id : author.id);
+		if (throttle && throttle.endsAt) {
+			const timeLeft = moment(throttle.endsAt).fromNow(true);
+
+			return message.channel.send(`Please wait ${timeLeft} to use this command again.`);
+		}
 
 		return undefined;
 	}
 
-	async globalThrottle(message, command, duration) {
-		const { client, author } = message;
-		const now = Date.now();
-		const [record] = await this.queue(author.id + command, () => client.db.models.GlobalThrottle.upsert({
-			user_id: author.id,
-			command: command,
-			endsAt: now + duration,
-		}));
-
-		client.db.cache.GlobalThrottle.set(author.id + command, record);
-	}
-
 	throttle(message) {
-		const { client, author, guild } = message;
-		if (client.owners.includes(author.id) || this.throttleDuration === 0) return;
+		const { author, guild } = message;
+		if (this.client.owners.includes(author.id) || this.throttleDuration === 0) return;
 
-		const key = guild ? author.id + guild.id + this.name : author.id + this.name;
+		const key = guild ? author.id + guild.id : author.id;
 
 		let throttle = this.throttles.get(key);
 		if (!throttle) {
 			throttle = {
 				endsAt: Date.now() + this.throttleDuration,
-				timeout: client.setTimeout(() => {
+				timeout: setTimeout(() => {
 					this.throttles.delete(key);
 				}, this.throttleDuration),
 			};
 
 			this.throttles.set(key, throttle);
 		}
+	}
+
+	customThrottle(message, name, duration) {
+		if (this.client.isOwner(message.author.id)) return;
+		const user = message.author.model;
+
+		const copy = user.toJSON().throttles;
+		copy[name] = Date.now() + duration;
+		this.client.db.models.User.q.add(message.author.id, () => user.update({ throttles: copy }));
 	}
 }
 

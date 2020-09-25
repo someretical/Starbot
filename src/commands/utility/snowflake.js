@@ -13,6 +13,7 @@ module.exports = class Snowflake extends StarbotCommand {
 				name: '<timestamp>',
 				optional: true,
 				description: 'timestamp during the Discord epoch (1st Jan 2015)',
+				defaultValue: 'current timestamp',
 				example: '1596779518569',
 			}],
 			aliases: [],
@@ -29,9 +30,9 @@ module.exports = class Snowflake extends StarbotCommand {
 		const now = !args[0] ? Date.now() : new Date(parseInt(args[0])).getTime();
 
 		if (Number.isNaN(now) || !Number.isSafeInteger(now) || now < 1420070400000) {
-			return channel.embed('Please provide a valid timestamp!');
+			return channel.send('Please provide a valid timestamp!');
 		}
 
-		return channel.embed(client.snowflake(now));
+		return channel.send(client.snowflake(now));
 	}
 };

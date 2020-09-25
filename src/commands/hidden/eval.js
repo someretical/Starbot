@@ -1,6 +1,6 @@
 'use strict';
 
-const { inspect } = require('util');
+const util = require('util');
 const tags = require('common-tags');
 const Discord = require('discord.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
@@ -17,8 +17,8 @@ module.exports = class Eval extends StarbotCommand {
 				name: '<expression>',
 				optional: true,
 				description: 'has to be code',
+				defaultValue: 'undefined',
 				example: 'console.log(\'hello world!\');',
-				code: true,
 			}],
 			aliases: [],
 			userPermissions: [],
@@ -31,7 +31,7 @@ module.exports = class Eval extends StarbotCommand {
 		this.lastResult = null;
 	}
 
-	run(message) {
+	async run(message) {
 		// eslint-disable-next-line no-unused-vars
 		const { client, raw, channel } = message;
 
@@ -39,11 +39,11 @@ module.exports = class Eval extends StarbotCommand {
 		try {
 			const hrStart = process.hrtime();
 
-			this.lastResult = eval(raw.args);
+			this.lastResult = await eval(raw.args);
 
 			hrDiff = process.hrtime(hrStart);
 		} catch (err) {
-			return channel.embed(`Error while evaluating: \`${err}\``);
+			return channel.send(`\`\`\`js\n${err}\n\`\`\``);
 		}
 
 		this.hrStart = process.hrtime();
@@ -57,7 +57,7 @@ module.exports = class Eval extends StarbotCommand {
 	}
 
 	makeResultMessages(result, hrDiff, input = null) {
-		const inspected = Util.sanitise(inspect(result, { depth: 0 })
+		const inspected = Util.sanitise(util.inspect(result, { depth: 0 })
 			.replace(/!!NL!!/g, '\n'));
 		const split = inspected.split('\n');
 		const last = inspected.length - 1;
@@ -71,14 +71,14 @@ module.exports = class Eval extends StarbotCommand {
 		if (input) {
 			return Discord.splitMessage(tags.stripIndents`
 				*Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*
-				\`\`\`javascript
+				\`\`\`js
 				${inspected}
 				\`\`\`
 			`, { maxLength: 1900, prepend, append });
 		} else {
 			return Discord.splitMessage(tags.stripIndents`
 				*Callback executed after ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*
-				\`\`\`javascript
+				\`\`\`js
 				${inspected}
 				\`\`\`
 			`, { maxLength: 1900, prepend, append });
