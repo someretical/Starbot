@@ -10,7 +10,7 @@ module.exports = class ListStars extends StarbotCommand {
 		super(client, {
 			name: 'liststars',
 			description: 'lists all the starred messages a server has',
-			group: 'tag',
+			group: 'starboard',
 			usage: '<page>',
 			args: [{
 				name: '<page>',
