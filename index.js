@@ -16,14 +16,6 @@ const client = new Starbot({
 	partials: [],
 	disabledEvents: [],
 	retryLimit: 0,
-	presence: {
-		status: 'online',
-		afk: false,
-		activity: {
-			name: '@Starbot help',
-			type: 'PLAYING',
-		},
-	},
 });
 
 client.run();
