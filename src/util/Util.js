@@ -42,6 +42,16 @@ class Util {
 			.concat(`\n\`\`\`js\n// ERROR_CODE: ${code}\n\n${Util.sanitise(error.stack)}\n\`\`\``);
 	}
 
+	static async cancelCmd(msg) {
+		await msg.channel.send('The command has been cancelled.');
+		return msg.channel.awaiting.delete(msg.author.id);
+	}
+
+	static async timeUp(msg) {
+		await msg.channel.send('Sorry but the message collector timed out. Please run the command again.');
+		return msg.channel.awaiting.delete(msg.author.id);
+	}
+
 	static sanitise(result, regex = false) {
 		let cleansed = result.toString()
 			.replace(process.env.TOKEN, 'here is the token you retard')
@@ -72,48 +82,24 @@ class Util {
 		return perms;
 	}
 
-	static paginate(arr, maxPageLength = 1024, joinChar = '\n') {
-		const paged = [];
-		let temp = [];
-
-		while (arr.length) {
-			temp.push(arr.pop());
-
-			if (temp.join(joinChar).length > maxPageLength) {
-				if (temp.length === 1) {
-					paged.push(`${temp[0].slice(0, -maxPageLength - 3)}...`);
-					temp = [];
-				} else {
-					const pushIntoNext = temp.pop();
-
-					paged.push(temp.join(joinChar));
-
-					temp = [pushIntoNext];
-				}
-			}
-		}
-
-		return paged;
-	}
-
 	static matchMessageURL(str, includeChannel = false) {
 		let id, url;
 		try {
 			url = new URL(str);
 		} catch (err) {
-			url = includeChannel ? undefined : (str.match(/^\d+$/) || [])[1];
+			url = includeChannel ? undefined : (str.match(/^(\d+)$/) || [])[1];
 		}
 
 		if (!url) return undefined;
 
-		if (url.prototype instanceof URL) {
+		if (url instanceof URL) {
 			if (!url.pathname) return undefined;
 
-			const [, channel_id, message_id] = url.pathname.match(/\/channels\/\d+\/(\d+)\/(\d+)/) || [];
+			const [, channel_id, message_id] = url.pathname.match(/\/channels\/(?:\d+|@me)\/(\d+)\/(\d+)/) || [];
 			if (!message_id) return undefined;
 
 			if (includeChannel) {
-				return { message_id: message_id, channel_id: channel_id };
+				return { channel_id: channel_id, message_id: message_id };
 			}
 
 			id = message_id;
