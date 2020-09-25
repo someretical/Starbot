@@ -4,10 +4,10 @@ const { oneLine, stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 const { pluralize } = require('../../util/Util.js');
 
-module.exports = class TagList extends StarbotCommand {
+module.exports = class ListTags extends StarbotCommand {
 	constructor(client) {
 		super(client, {
-			name: 'taglist',
+			name: 'listtags',
 			description: 'lists all the tags a server has',
 			group: 'tag',
 			usage: '<page>',
@@ -57,8 +57,8 @@ module.exports = class TagList extends StarbotCommand {
 				created by ${client.users.cache.has(tag.author_id) ? `<@${tag.author_id}>` : `Unknown user (${tag.author_id})`}
 				 - ${tag.uses} use${pluralize(tag.uses)}
 			`);
-		const start = ((page - 1) * 50) + 1;
-		const end = Math.min(start + 49, tags.size);
+		const start = ((page - 1) * 15) + 1;
+		const end = Math.min(start + 14, tags.size);
 		const embed = client.embed(null, true)
 			.setTitle(`${guild.name} tags`)
 			.setDescription(stripIndents`
