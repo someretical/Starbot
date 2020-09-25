@@ -39,18 +39,11 @@ class StarbotDatabase {
 	}
 
 	static async authenticate() {
-		try {
-			await sequelize.authenticate();
-			Logger.info('Successfully authenticated with database');
+		await sequelize.authenticate();
+		Logger.info('Successfully authenticated with database');
 
-			await this.loadModels();
-			Logger.info('Successfully loaded models');
-		} catch (err) {
-			Logger.err(err, 'Failed to authenticate with database');
-			Logger.info('Attempting to connect again in 5 seconds...');
-
-			setTimeout(this.authenticate, 5000);
-		}
+		await this.loadModels();
+		Logger.info('Successfully loaded models');
 	}
 }
 

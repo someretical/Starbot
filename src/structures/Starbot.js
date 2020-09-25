@@ -43,24 +43,32 @@ class Starbot extends Discord.Client {
 		return this.owners.includes(id);
 	}
 
-	async run() {
+	run() {
 		this.loadEvents();
 		this.loadCommands();
 
-		await StarbotDatabase.authenticate();
-
-		const login = async () => {
-			try {
-				await this.login(process.env.TOKEN);
-			} catch (err) {
+		const login = () => this
+			.login(process.env.TOKEN)
+			.catch(err => {
 				Logger.err('Failed to log in. Retrying in 30 seconds...');
 				Logger.stack(err);
 
 				setTimeout(login, 30000);
-			}
-		};
+			});
 
-		login();
+		const auth = () => StarbotDatabase
+			.authenticate()
+			.then(login)
+			.catch(async err => {
+				Logger.err('Failed to authenticate with database');
+				Logger.stack(err);
+				await this.db.close();
+
+				Logger.info('Attempting to connect again in 5 seconds...');
+				return setTimeout(auth, 5000);
+			});
+
+		auth();
 	}
 
 	loadEvents() {
