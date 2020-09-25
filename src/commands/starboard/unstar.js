@@ -1,6 +1,8 @@
 'use strict';
 
+const { oneLine } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { matchMessageURL } = require('../../util/Util.js');
 
 module.exports = class UnStar extends StarbotCommand {
 	constructor(client) {
@@ -14,9 +16,8 @@ module.exports = class UnStar extends StarbotCommand {
 				optional: false,
 				description: 'link to a message',
 				example: 'https://discord.com/channels/361736003859513344/732842050516680705/732842074612826112',
-				code: true,
 			}],
-			aliases: ['removestar', 'deletestar'],
+			aliases: [],
 			userPermissions: [],
 			clientPermissions: [],
 			guildOnly: true,
@@ -26,57 +27,47 @@ module.exports = class UnStar extends StarbotCommand {
 	}
 
 	async run(message) {
-		const { args, author, channel, guild } = message;
-		const invalidURL = () => channel.embed('Please provide a valid message URL!');
+		const { client, args, author, channel, guild } = message;
+		const invalidURL = () => channel.send('Please provide a valid message URL!');
 
-		if (!args[0]) return invalidURL();
+		if (!args[0]) {
+			return channel.send('Please provide a message URL!');
+		}
 
-		let url;
+		const obj = matchMessageURL(args[0], true);
+		if (!obj) return invalidURL();
+
+		const starChannel = guild.channels.cache.get(obj.channel_id);
+		if (!starChannel || starChannel.type !== 'text') return invalidURL();
+
+		let starMessage;
 		try {
-			url = new URL(args[0]);
+			starMessage = await starChannel.messages.fetch(obj.message_id);
 		} catch (err) {
 			return invalidURL();
 		}
-
-		if (!url.pathname) return invalidURL();
-
-		const [, channel_id, message_id] = url.pathname.match(/\/channels\/\d+\/(\d+)\/(\d+)/) || [];
-		if (!channel_id || !message_id) return invalidURL();
-
-		const starChannel = guild.channels.cache.get(channel_id);
-		if (!starChannel || starChannel.type !== 'text') return invalidURL();
-
-		const starMessage = await starChannel.messages.fetch(message_id);
-		if (!starMessage) return invalidURL();
+		if (!starMessage) return undefined;
 
 		if (starMessage.author.id === author.id) {
-			return channel.embed('You cannot unstar your own message!');
+			return channel.send('You cannot unstar your own message!');
 		}
 
-		let star = await guild.starboard.getStarModel(starMessage.id);
-
-		if (!star) {
-			const status = await guild.starboard.fixStar(starMessage);
-			if (status === 1) {
-				return channel.embed('This message has not been starred yet!');
+		const star = await guild.starboard.getStars(starMessage.id);
+		if (star) {
+			if (!star.reactions.cmd.includes(author.id) && !star.reactions.msg.includes(author.id)) {
+				return channel.send('You have not starred this message!');
 			}
 
-			star = await guild.starboard.getStarModel(starMessage.id);
+			if (star.reactions.msg.includes(author.id)) {
+				return channel.send('Please unstar this message by removing your reaction from it.');
+			}
+
+			await guild.starboard.removeStar(starMessage, author.id, true);
+
+			return channel.embed(`You have unstarred ${starMessage.author.toString()}'s message.`);
+		} else {
+			return channel.send(oneLine`This message has not been starred yet. 
+				If it has reactions, please run \`${client.prefix}fixstar ${starMessage.url}\` first.`);
 		}
-
-		const cmdReactors = JSON.parse(star.cmdReactors);
-		const reactors = JSON.parse(star.reactors);
-
-		if (!cmdReactors.includes(author.id) && !reactors.includes(author.id)) {
-			return channel.embed('You have not starred this message yet!');
-		}
-
-		if (!cmdReactors.includes(author.id)) {
-			return channel.embed('Please unstar this message by removing your reaction from it.');
-		}
-
-		await guild.starboard.removeStar(starMessage, author.id, true);
-
-		return channel.embed(`You have removed your star from ${starMessage.author.toString()}'s message.`);
 	}
 };

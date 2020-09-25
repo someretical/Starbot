@@ -18,7 +18,6 @@ module.exports = class SetPrefix extends StarbotCommand {
 					run \`<prefix>help arguments\` for more information
 				`,
 				example: 's!',
-				code: true,
 			}],
 			aliases: [],
 			userPermissions: ['MANAGE_GUILD'],
@@ -33,25 +32,20 @@ module.exports = class SetPrefix extends StarbotCommand {
 		const { client, args, channel, guild } = message;
 
 		if (!args[0]) {
-			return channel.embed('Please choose a prefix!');
+			return channel.send('Please provide a prefix!');
 		}
 
 		const sanitised = args[0].replace(/<single_quote>/ig, '\'').replace(/<double_quote>/ig, '"');
 
 		if (sanitised.length > 10 || !args[0].length) {
-			return channel.embed('Please choose a prefix that is between 1 and 10 characters long!');
+			return channel.send('Please choose a prefix that is between 1 and 10 characters long!');
 		}
 
-		const upsertObj = guild.settings.toJSON();
-		upsertObj.prefix = sanitised;
+		await client.db.models.Guild.q.add(guild.id, () => guild.model.update({ prefix: sanitised }));
 
-		const [updatedGuild] = await guild.queue(() => client.db.models.Guild.upsert(upsertObj));
-
-		client.db.cache.Guild.set(guild.id, updatedGuild);
-
-		return channel.embed(oneLine`
+		return channel.send(oneLine`
 			The prefix for this guild has been updated to \`${sanitised}\`.
-			You can still mention the bot to run commands if you forget the custom prefix.
+			If you forget the custom prefix, you can still run commands with the ${client.user.toString()} prefix.
 		`);
 	}
 };

@@ -22,7 +22,7 @@ class Starboard {
 	async _checkValidity(message, user_id = undefined, cmd = false) {
 		// Cmd parameter makes sure repeated calls are not made to the database
 		// As commands would have already checked user_id for discrepencies
-		const _guild = await this.guild.findCreateFind();
+		const _guild = this.guild.model;
 
 		this.channel = this.guild.channels.cache.get(_guild.starboard_id);
 
@@ -54,7 +54,6 @@ class Starboard {
 	}
 
 	async _addNewStar(message, user_id = undefined) {
-		const _guild = await this.guild.findCreateFind();
 		const optedOut = this.client.db.models.OptOut.cache;
 		const reactions = { msg: [], cmd: [] };
 
@@ -67,7 +66,7 @@ class Starboard {
 			const reactors = await Starboard.fetchAllReactors(reaction);
 
 			reactors.map(({ id }) =>
-				!reactions.cmd.includes(id) && !_guild.ignoredUsers.includes(id) && !optedOut.has(id) ?
+				!reactions.cmd.includes(id) && !this.guild.model.ignoredUsers.includes(id) && !optedOut.has(id) ?
 					reactions.msg.push(id) :
 					undefined,
 			);
@@ -89,22 +88,21 @@ class Starboard {
 
 	async _displayStar(message, star) {
 		let botMessage;
-		const reactions = star.reactions.msg.length + star.reactions.cmd.length;
-		const _guild = await this.guild.findCreateFind();
+		const _guild = this.guild.model;
 
-		if (this.channel && _guild.starboardEnabled && reactions >= _guild.reactionThreshold) {
+		if (this.channel && _guild.starboardEnabled && star.totalReactionCount >= _guild.reactionThreshold) {
 			const ignored = await this.channel.ignored();
 
 			if (!ignored && this.channel.clientHasPermissions()) {
 				botMessage = star.botMessage_id ? await this.channel.messages.fetch(star.botMessage_id) : undefined;
 
-				const send = () => this.channel.send(Starboard.buildStarboardMessage(message, reactions));
+				const send = () => this.channel.send(Starboard.buildStarboardMessage(message, star.totalReactionCount));
 
 				try {
 					if (botMessage) {
 						botMessage = await this.channel.messages.cache
 							.get(botMessage.id)
-							.edit(Starboard.buildStarboardMessage(message, reactions));
+							.edit(Starboard.buildStarboardMessage(message, star.totalReactionCount));
 					} else {
 						botMessage = await send();
 					}
@@ -179,7 +177,7 @@ class Starboard {
 		if (!star) return this._addNewStar(message);
 		const _reactions = star.toJSON().reactions;
 
-		const _guild = await this.guild.findCreateFind();
+		const _guild = this.guild.model;
 		const optedOut = this.client.db.models.OptOut.cache;
 		_reactions.cmd = star.reactions.cmd.filter(id =>
 			!_guild.ignoredUsers.includes(id) && !optedOut.has(id),
@@ -246,6 +244,7 @@ class Starboard {
 			.setColor(message.client.embedColour)
 			.setAuthor(message.guild.name, message.guild.iconURL())
 			.setThumbnail(message.author.avatarURL())
+			.addField('Author', message.author.toString(), true)
 			.addField('Channel', `<#${message.channel.id}>\n[Jump to message](${message.url})`, true)
 			.setFooter(`${message.pinned ? '📌 • ' : ''}${reactionCount} ${starEmoji} • ${createdAt}`);
 
@@ -254,7 +253,7 @@ class Starboard {
 
 		let content = message.embeds[0] ? message.embeds[0].description : message.content;
 		if (content && content.length > 1021) content = `${content.substring(0, 1021)}...`;
-		if (content) embed.addField('Content', content, true);
+		if (content) embed.addField('Content', content);
 
 		const otherAttachment = Starboard.getOtherAttchement(message);
 		if (otherAttachment) embed.attachFiles([otherAttachment]);

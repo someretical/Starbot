@@ -16,24 +16,21 @@ module.exports = class Starboard extends StarbotCommand {
 				optional: false,
 				description: 'one of the following: enabled, threshold, channel',
 				example: 'enabled',
-				code: true,
 			}, {
 				name: 'enabled <value>',
 				optional: false,
 				description: 'yes/no',
 				example: 'yes',
-				code: true,
 			}, {
 				name: 'threshold <value>',
 				optional: false,
 				description: 'an integer larger than 0',
 				example: '2',
-				code: true,
 			}, {
 				name: 'channel <value>',
 				optional: false,
 				description: 'a channel mention or ID',
-				example: `<#${client.snowflake()}>`,
+				example: `<#${client.owners[0]}>`,
 				code: false,
 			}],
 			aliases: ['sb'],
@@ -52,7 +49,6 @@ module.exports = class Starboard extends StarbotCommand {
 			return channel.send('Please provide a setting to change!');
 		}
 
-
 		const setting = (args[0].match(/^(enabled|threshold|channel)$/i) || [])[1];
 		if (!setting) {
 			return channel.send('Please provide a valid setting!');
@@ -62,13 +58,13 @@ module.exports = class Starboard extends StarbotCommand {
 			return channel.send('Please provide a new value for the setting!');
 		}
 
+		const _guild = guild.model;
 		if (setting === 'enabled') {
 			let boolean = (args[1].match(/^(y(?:es)?|no?)$/i) || [])[1];
 			if (!boolean) {
 				return channel.send('Please provide a valid boolean resolvable!');
 			}
 
-			const _guild = await guild.findCreateFind();
 			boolean = boolean.startsWith('y');
 
 			if (_guild.starboardEnabled !== boolean) {
@@ -86,8 +82,6 @@ module.exports = class Starboard extends StarbotCommand {
 				return channel.send('Please provide a valid integer!');
 			}
 
-			const _guild = await guild.findCreateFind();
-
 			if (_guild.reactionThreshold !== threshold) {
 				await client.db.models.Guild.q.add(guild.id, () => _guild.update({ reactionThreshold: threshold }));
 			}
@@ -102,8 +96,6 @@ module.exports = class Starboard extends StarbotCommand {
 			if (starboard.type !== 'text') {
 				return channel.send('Please provide a **text** channel!');
 			}
-
-			const _guild = await guild.findCreateFind();
 
 			if (_guild.starboard_id !== starboard.id) {
 				await client.db.models.Guild.q.add(guild.id, () => _guild.update({ starboard_id: starboard.id }));

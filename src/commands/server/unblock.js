@@ -60,6 +60,8 @@ module.exports = class Unblock extends StarbotCommand {
 		}
 
 		const values = args.slice(1).join(' ');
+		const _guild = guild.model;
+		let res;
 
 		if (option === 'user') {
 			const users = matchUsers(values);
@@ -67,9 +69,7 @@ module.exports = class Unblock extends StarbotCommand {
 				return channel.send('Please provide at least 1 valid user resolvable!');
 			}
 
-			const _guild = await guild.findCreateFind();
-			const filteredUsers = users.filter(id => _guild.ignoredUsers.includes(id));
-			if (users.length !== filteredUsers.length) {
+			if (users.some(id => !_guild.ignoredUsers.includes(id))) {
 				return channel.send('One (or more) of the provided users are not blocked.');
 			}
 
@@ -77,59 +77,51 @@ module.exports = class Unblock extends StarbotCommand {
 				_guild.update({ ignoredUsers: _guild.ignoredUsers.filter(id => !users.includes(id)) }),
 			);
 
-			const res = filteredUsers.length === 1 ?
-				client.embed(`<@${filteredUsers[0]}> has been unblocked.`) :
-				filteredUsers.length < 11 ?
-					client.embed(`The following users were unblocked: ${fancyJoin(filteredUsers.map(id => `<@${id}>`))}`) :
-					`${filteredUsers.length} user${pluralize(filteredUsers.length)} were unblocked.`;
-
-			return channel.send(res);
+			res = users.length === 1 ?
+				client.embed(`<@${users[0]}> has been unblocked.`) :
+				users.length < 11 ?
+					client.embed(`The following users were unblocked: ${fancyJoin(users.map(id => `<@${id}>`))}`) :
+					`${users.length} user${pluralize(users.length)} were unblocked.`;
 		} else if (option === 'role') {
 			const roles = matchRoles(values);
 			if (!roles.length) {
 				return channel.send('Please provide at least 1 valid role resolvable!');
 			}
 
-			const _guild = await guild.findCreateFind();
-			const filteredRoles = roles.filter(id => _guild.ignoredRoles.includes(id));
-			if (roles.length !== filteredRoles.length) {
+			if (roles.some(id => !_guild.ignoredRoles.includes(id))) {
 				return channel.send('One (or more) of the provided roles are not blocked.');
 			}
 
 			await client.db.models.Guild.q.add(guild.id, () =>
-				_guild.update({ ignoredRoles: _guild.ignoredRoles.filter(id => !filteredRoles.includes(id)) }),
+				_guild.update({ ignoredRoles: _guild.ignoredRoles.filter(id => !roles.includes(id)) }),
 			);
 
-			const res = filteredRoles.length === 1 ?
-				client.embed(`The <@&${filteredRoles[0]}> role has been unblocked.`) :
-				filteredRoles.length < 11 ?
-					client.embed(`The following roles were unblocked: ${fancyJoin(filteredRoles.map(id => `<@&${id}>`))}`) :
-					`${filteredRoles.length} roles${pluralize(filteredRoles.length)} were unblocked.`;
-
-			return channel.send(res);
+			res = roles.length === 1 ?
+				client.embed(`The <@&${roles[0]}> role has been unblocked.`) :
+				roles.length < 11 ?
+					client.embed(`The following roles were unblocked: ${fancyJoin(roles.map(id => `<@&${id}>`))}`) :
+					`${roles.length} roles${pluralize(roles.length)} were unblocked.`;
 		} else {
 			const channels = matchChannels(values);
 			if (!channels.length) {
 				return channel.send('Please provide at least 1 valid channel resolvable!');
 			}
 
-			const _guild = await guild.findCreateFind();
-			const filteredChannels = channels.filter(id => _guild.ignoredChannels.includes(id));
-			if (channels.length !== filteredChannels.length) {
+			if (channels.some(id => !_guild.ignoredChannels.includes(id))) {
 				return channel.send('One (or more) of the provided channels are not blocked.');
 			}
 
 			await client.db.models.Guild.q.add(guild.id, () =>
-				_guild.update({ ignoredChannels: _guild.ignoredChannels.filter(id => !filteredChannels.includes(id)) }),
+				_guild.update({ ignoredChannels: _guild.ignoredChannels.filter(id => !channels.includes(id)) }),
 			);
 
-			const res = filteredChannels.length === 1 ?
-				`The <#${filteredChannels[0]}> channel has been unblocked.` :
-				filteredChannels.length < 11 ?
-					`The following channels were unblocked: ${fancyJoin(filteredChannels.map(id => `<#${id}>`))}` :
-					`${filteredChannels.length} channels${pluralize(filteredChannels.length)} were unblocked.`;
-
-			return channel.send(res);
+			res = channels.length === 1 ?
+				`The <#${channels[0]}> channel has been unblocked.` :
+				channels.length < 11 ?
+					`The following channels were unblocked: ${fancyJoin(channels.map(id => `<#${id}>`))}` :
+					`${channels.length} channels${pluralize(channels.length)} were unblocked.`;
 		}
+
+		return channel.send(res);
 	}
 };

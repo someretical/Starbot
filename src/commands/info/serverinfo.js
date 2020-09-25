@@ -3,6 +3,7 @@
 const moment = require('moment');
 const { capitaliseFirstLetter: cfl, pluralize } = require('../../util/Util.js');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
+const { getStarEmoji } = require('../../structures/Starboard.js');
 
 module.exports = class ServerInfo extends StarbotCommand {
 	constructor(client) {
@@ -27,6 +28,8 @@ module.exports = class ServerInfo extends StarbotCommand {
 		const channels = guild.channels.cache.size;
 		const emojis = guild.emojis.cache.size;
 		const boosters = guild.premiumSubscriptionCount;
+		const stars = guild.stars;
+		const totalStarCount = stars.reduce((a, b) => (a.totalStarCount || 0) + b.totalStarCount, 0);
 		const embed = client.embed()
 			.setAuthor(guild.name, guild.iconURL(), `https://discord.com/channels/${guild.id}`)
 			.setThumbnail(guild.iconURL())
@@ -46,7 +49,10 @@ module.exports = class ServerInfo extends StarbotCommand {
 			.addField('AFK timeout', guild.afkTimeout ? moment(guild.afkTimeout).format('mm[m] ss[s]') : 'None', true)
 			.addField('Partnered', guild.partnered ? 'Yes' : 'No', true)
 			.addField('Verified', guild.verified ? 'Yes' : 'No', true)
-			.addField('Verification level', cfl(guild.verificationLevel.toLowerCase().replace(/_/g, ' ')), true);
+			.addField('Verification level', cfl(guild.verificationLevel.toLowerCase().replace(/_/g, ' ')), true)
+			.addField('Starred messages', `${stars.size} message${pluralize(stars.size)}`, true)
+			.addField('Total stars', `${totalStarCount} ${getStarEmoji(totalStarCount)}`, true)
+			.addField('\u200b', '\u200b', true);
 
 		return channel.send(embed);
 	}

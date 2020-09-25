@@ -60,6 +60,8 @@ module.exports = class Block extends StarbotCommand {
 		}
 
 		const values = args.slice(1).join(' ');
+		const _guild = guild.model;
+		let res;
 
 		if (option === 'user') {
 			const users = matchUsers(values);
@@ -67,88 +69,75 @@ module.exports = class Block extends StarbotCommand {
 				return channel.send('Please provide at least 1 valid user resolvable!');
 			}
 
-			const filteredUsers = users.filter(id => client.users.cache.has(id));
-			if (users.length !== filteredUsers.length) {
+			if (users.some(id => !client.users.cache.has(id))) {
 				return channel.send('One (or more) of the provided users could not be found.');
 			}
 
-			const _guild = await guild.findCreateFind();
-			const filteredUsers2 = filteredUsers.filter(id => !_guild.ignoredUsers.includes(id));
-			if (filteredUsers.length !== filteredUsers2.length) {
+			if (users.some(id => !_guild.ignoredUsers.includes(id))) {
 				return channel.send('One (or more) of the provided users are already blocked.');
 			}
 
 			await client.db.models.Guild.q.add(guild.id, () =>
-				_guild.update({ ignoredUsers: _guild.ignoredUsers.concat(filteredUsers2) }),
+				_guild.update({ ignoredUsers: _guild.ignoredUsers.concat(users) }),
 			);
 
-			const res = filteredUsers2.length === 1 ?
-				client.embed(`<@${filteredUsers2[0]}> has been blocked.`) :
-				filteredUsers2.length < 11 ?
-					client.embed(`The following users were blocked: ${fancyJoin(filteredUsers2.map(id => `<@${id}>`))}`) :
-					`${filteredUsers2.length} user${pluralize(filteredUsers2.length)} were blocked.`;
-
-			return channel.send(res);
+			res = users.length === 1 ?
+				client.embed(`<@${users[0]}> has been blocked.`) :
+				users.length < 11 ?
+					client.embed(`The following users were blocked: ${fancyJoin(users.map(id => `<@${id}>`))}`) :
+					`${users.length} user${pluralize(users.length)} were blocked.`;
 		} else if (option === 'role') {
 			const roles = matchRoles(values);
 			if (!roles.length) {
 				return channel.send('Please provide at least 1 valid role resolvable!');
 			}
 
-			const filteredRoles = roles.filter(id => guild.roles.cache.has(id));
-			if (roles.length !== filteredRoles.length) {
+			if (roles.some(id => !guild.roles.cache.has(id))) {
 				return channel.send('One (or more) of the provided roles could not be found.');
 			}
 
-			const _guild = await guild.findCreateFind();
-			const filteredRoles2 = filteredRoles.filter(id => !_guild.ignoredRoles.includes(id));
-			if (filteredRoles.length !== filteredRoles2.length) {
+			if (roles.some(id => !_guild.ignoredRoles.includes(id))) {
 				return channel.send('One (or more) of the provided roles are already blocked.');
 			}
 
 			await client.db.models.Guild.q.add(guild.id, () =>
-				_guild.update({ ignoredRoles: _guild.ignoredRoles.concat(filteredRoles2) }),
+				_guild.update({ ignoredRoles: _guild.ignoredRoles.concat(roles) }),
 			);
 
-			const res = filteredRoles2.length === 1 ?
-				client.embed(`The <@&${filteredRoles2[0]}> role has been blocked.`) :
-				filteredRoles2.length < 11 ?
-					client.embed(`The following roles were blocked: ${fancyJoin(filteredRoles2.map(id => `<@&${id}>`))}`) :
-					`${filteredRoles2.length} roles${pluralize(filteredRoles2.length)} were blocked.`;
-
-			return channel.send(res);
+			res = roles.length === 1 ?
+				client.embed(`The <@&${roles[0]}> role has been blocked.`) :
+				roles.length < 11 ?
+					client.embed(`The following roles were blocked: ${fancyJoin(roles.map(id => `<@&${id}>`))}`) :
+					`${roles.length} roles${pluralize(roles.length)} were blocked.`;
 		} else {
 			const channels = matchChannels(values);
 			if (!channels.length) {
 				return channel.send('Please provide at least 1 valid channel resolvable!');
 			}
 
-			const filteredChannels = channels.filter(id => guild.channels.cache.has(id));
-			if (channels.length !== filteredChannels.length) {
+			if (channels.some(id => !guild.channels.cache.has(id))) {
 				return channel.send('One (or more) of the provided channels could not be found.');
 			}
 
-			if (filteredChannels.some(id => ['text', 'news'].includes(guild.channels.cache.get(id).type))) {
+			if (channels.some(id => ['text', 'news'].includes(guild.channels.cache.get(id).type))) {
 				return channel.send('One (or more) of the provided channels were not text channels.');
 			}
 
-			const _guild = await guild.findCreateFind();
-			const filteredChannels2 = filteredChannels.filter(id => !_guild.ignoredChannels.includes(id));
-			if (filteredChannels.length !== filteredChannels2.length) {
+			if (channels.some(id => !_guild.ignoredChannels.includes(id))) {
 				return channel.send('One (or more) of the provided channels are already blocked.');
 			}
 
 			await client.db.models.Guild.q.add(guild.id, () =>
-				_guild.update({ ignoredChannels: _guild.ignoredChannels.concat(filteredChannels2) }),
+				_guild.update({ ignoredChannels: _guild.ignoredChannels.concat(channels) }),
 			);
 
-			const res = filteredChannels2.length === 1 ?
-				`The <#${filteredChannels2[0]}> channel has been blocked.` :
-				filteredChannels2.length < 11 ?
-					client.embed(`The following channels were blocked: ${fancyJoin(filteredChannels2.map(id => `<#${id}>`))}`) :
-					`${filteredChannels2.length} channels${pluralize(filteredChannels2.length)} were blocked.`;
-
-			return channel.send(res);
+			res = channels.length === 1 ?
+				`The <#${channels[0]}> channel has been blocked.` :
+				channels.length < 11 ?
+					`The following channels were blocked: ${fancyJoin(channels.map(id => `<#${id}>`))}` :
+					`${channels.length} channels${pluralize(channels.length)} were blocked.`;
 		}
+
+		return channel.send(res);
 	}
 };

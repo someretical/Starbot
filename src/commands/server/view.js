@@ -32,7 +32,7 @@ module.exports = class View extends StarbotCommand {
 		});
 	}
 
-	async run(message) {
+	run(message) {
 		const { client, args, channel, guild } = message;
 
 		if (!args[0]) {
@@ -51,7 +51,7 @@ module.exports = class View extends StarbotCommand {
 			}
 		}
 
-		const { ignoredUsers: users, ignoredRoles: roles, ignoredChannels: channels } = await guild.findCreateFind();
+		const { ignoredUsers: users, ignoredRoles: roles, ignoredChannels: channels } = guild.model;
 		let embed;
 
 		if (option === 'users') {

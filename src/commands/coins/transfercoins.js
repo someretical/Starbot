@@ -21,9 +21,8 @@ module.exports = class TransferCoins extends StarbotCommand {
 				optional: false,
 				description: 'amount of coins to transfer',
 				example: '420',
-				code: true,
 			}],
-			aliases: ['movecoins', 'laundercoins'],
+			aliases: ['transfer', 'movecoins', 'givecoins'],
 			userPermissions: [],
 			clientPermissions: [],
 			guildOnly: false,
@@ -34,56 +33,41 @@ module.exports = class TransferCoins extends StarbotCommand {
 
 	async run(message) {
 		const { client, args, author, channel } = message;
-		const invalid = () => channel.send('Please provide a valid user resolvable!');
-		const amount = parseInt(args[0]);
-		const authorData = author.data;
 
-		if (!args[0]) return invalid();
-
-		let user;
-		try {
-			user = await client.users.fetch(matchUsers(args[0])[0]);
-		} catch (err) {
-			return invalid();
+		if (!args[0]) {
+			channel.send('Please provide a valid user resolvable!');
 		}
+
+		const amount = parseInt(args[1]);
 
 		if (Number.isNaN(amount) || !Number.isSafeInteger(amount) || amount < 1) {
-			return channel.embed('Please provide a valid number of coins to transfer!');
+			return channel.send('Please provide a valid number of coins to transfer!');
 		}
 
-		if (amount > authorData.coins) {
+		const sender = author.model;
+		const receiver = client.db.models.User.cache.get(matchUsers(args[0])[0]);
+		if (!receiver) {
+			return channel.send('This user has not been added yet.');
+		}
+
+		if (sender.id === receiver.id) {
+			return channel.send('You cannot transfer money to yourself!');
+		}
+
+		if (amount > sender.coins) {
 			return channel.embed('You do not have enough coins to complete the transfer!');
 		}
 
-		await user.add();
+		await client.db.transaction(async t => {
+			await client.db.models.User.q.add(sender.id, () => sender.update({ coins: sender.coins - amount },
+				{ transaction: t },
+			));
 
-		let user1, user2;
-
-		await client.sequelize.transaction(async t => {
-			const upsertObj1 = authorData.toJSON();
-			upsertObj1.coins -= amount;
-			upsertObj1.username = author.username;
-			upsertObj1.discriminator = author.discriminator;
-
-			const [user1_] = await author.queue(() => client.db.models.User.upsert(upsertObj1, {
-				transaction: t,
-			}));
-			user1 = user1_;
-
-			const upsertObj2 = user.data.toJSON();
-			upsertObj2.coins += amount;
-			upsertObj2.username = user.username;
-			upsertObj2.discriminator = user.discriminator;
-
-			const [user2_] = await user.queue(() => client.db.models.User.upsert(upsertObj2, {
-				transaction: t,
-			}));
-			user2 = user2_;
+			client.db.models.User.q.add(receiver.id, () => receiver.update({ coins: receiver.coins + amount },
+				{ transaction: t },
+			));
 		});
 
-		client.db.cache.User.set(user1.id, user1);
-		client.db.cache.User.set(user2.id, user2);
-
-		return channel.embed(`You have transferred ${amount} coin${pluralize(amount)} to ${user.toString()}.`);
+		return channel.embed(`You have transferred ${amount} coin${pluralize(amount)} to <@${receiver.id}>.`);
 	}
 };
