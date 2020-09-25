@@ -2,10 +2,9 @@
 	"name": "starbot",
 	"version": "1.0.0",
 	"description": "starbot",
-	"homepage": "https://github.com/thecraptheorist/Starbot",
+	"homepage": "https://github.com/someretical/Starbot",
 	"bugs": {
-		"url": "https://github.com/thecraptheorist/Starbot/issues",
-		"email": "thecraptheorist@gmail.com"
+		"url": "https://github.com/someretical/Starbot/issues"
 	},
 	"license": "MIT",
 	"author": {
