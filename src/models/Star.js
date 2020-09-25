@@ -43,6 +43,12 @@ Star.init({
 		type: DataTypes.JSON,
 		defaultValue: {},
 	},
+	totalStarCount: {
+		type: DataTypes.VIRTUAL,
+		get() {
+			return this.reactions.cmd.length + this.reactions.msg.length;
+		},
+	},
 }, {
 	hooks: {
 		// Emitted on model class methods with find keyword
