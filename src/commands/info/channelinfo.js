@@ -15,6 +15,7 @@ module.exports = class ChannelInfo extends StarbotCommand {
 				name: '<channel>',
 				optional: true,
 				description: 'a channel mention or ID',
+				defaultValue: 'current channel',
 				example: `<#${client.snowflake()}>`,
 				code: false,
 			}],
@@ -32,7 +33,7 @@ module.exports = class ChannelInfo extends StarbotCommand {
 		const infoChannel = guild.channels.cache.get(!args[0] ? channel.id : matchChannels(args[0])[0]);
 
 		if (!infoChannel) {
-			return channel.embed('Please provide a valid channel resolvable!');
+			return channel.send('Please provide a valid channel resolvable!');
 		}
 
 		const channelName = `${['text', 'news'].includes(infoChannel.type) ? '#' : ''}${infoChannel.name}`;
