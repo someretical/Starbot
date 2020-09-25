@@ -15,7 +15,6 @@ module.exports = class AddStar extends StarbotCommand {
 				optional: false,
 				description: 'link to a message',
 				example: 'https://discord.com/channels/361736003859513344/732842050516680705/732842074612826112',
-				code: true,
 			}],
 			aliases: ['star'],
 			userPermissions: [],
@@ -40,8 +39,13 @@ module.exports = class AddStar extends StarbotCommand {
 		const starChannel = guild.channels.cache.get(obj.channel_id);
 		if (!starChannel || starChannel.type !== 'text') return invalidURL();
 
-		const starMessage = await starChannel.messages.fetch(obj.message_id);
-		if (!starMessage) return invalidURL();
+		let starMessage;
+		try {
+			starMessage = await starChannel.messages.fetch(obj.message_id);
+		} catch (err) {
+			return invalidURL();
+		}
+		if (!starMessage) return undefined;
 
 		if (starMessage.author.id === author.id) {
 			return channel.send('You cannot star your own message!');
@@ -56,6 +60,6 @@ module.exports = class AddStar extends StarbotCommand {
 
 		await guild.starboard.addStar(starMessage, author.id, true);
 
-		return channel.embed(`You have added a star to ${starMessage.author.toString()}'s message.`);
+		return channel.send(`You have added a star to ${starMessage.author.toString()}'s message.`);
 	}
 };

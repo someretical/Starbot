@@ -22,10 +22,10 @@ module.exports = class Ping extends StarbotCommand {
 	async run(message) {
 		const { client, channel, createdTimestamp, editedTimestamp } = message;
 
-		const sent = await channel.embed('Pinging...');
+		const sent = await channel.send('Pinging...');
 		const heartbeat = Math.floor(client.ws.ping);
 		const roundTrip = Math.floor(sent.createdTimestamp - (editedTimestamp || createdTimestamp));
 
-		sent.edit(client.embed(`Pong! Heartbeat: ${heartbeat}ms, Round trip: ${roundTrip}ms`));
+		sent.edit(`Pong! Heartbeat: ${heartbeat}ms, Round trip: ${roundTrip}ms`);
 	}
 };
