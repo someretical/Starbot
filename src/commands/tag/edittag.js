@@ -97,7 +97,7 @@ const finalise = async (msg, tag, obj) => {
 	const updateObj = { ...tag.toJSON(), ...obj, lastContentUpdate: new Date() };
 	await msg.client.db.models.Guild.q.add(msg.guild.id, () => msg.client.db.models.Tag.upsert(updateObj));
 
-	const preview = obj.response
+	const preview = updateObj.response
 		.replace(/<guild>/ig, msg.guild.name)
 		.replace(/<channel>/ig, msg.channel.toString())
 		.replace(/<author>/ig, msg.author.toString());
@@ -108,8 +108,11 @@ const finalise = async (msg, tag, obj) => {
 		.setDescription(stripIndents`
 			The \`${tag.name}\` tag has been successfully edited.
 			${obj.name && tag.name !== obj.name ? `\nIts new name is \`${obj.name}\`.` : ''}
-		`)
-		.addField('Preview', preview.length > 1024 ? `${preview.substring(0, 1021)}...` : preview);
+		`);
+
+	if (obj.response && tag.response !== obj.response) {
+		embed.addField('Preview', preview.length > 1024 ? `${preview.substring(0, 1021)}...` : preview);
+	}
 
 	await msg.channel.send(embed);
 
