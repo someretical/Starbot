@@ -19,13 +19,15 @@ module.exports = async (client, message) => {
 		if (!channel.clientHasPermissions()) return undefined;
 	}
 
-	if (author.bot) return undefined;
-	if (await channel.ignored() && !client.isOwner(author.id)) return undefined;
-	if (author.ignored && !client.isOwner(author.id)) return undefined;
-	if (channel.awaiting.has(author.id)) return undefined;
-	if (guild) {
-		if (_guild.ignoredUsers.includes(author.id) && !client.isOwner(author.id)) return undefined;
-		if (_guild.ignoredRoles.some(id => member.roles.cache.has(id)) && !client.isOwner(author.id)) return undefined;
+	if (author.bot || channel.awaiting.has(author.id)) return undefined;
+	if (!client.isOwner(author.id)) {
+		if (await channel.ignored()) return undefined;
+		if (author.ignored) return undefined;
+
+		if (guild) {
+			if (_guild.ignoredUsers.includes(author.id)) return undefined;
+			if (_guild.ignoredRoles.some(id => member.roles.cache.has(id))) return undefined;
+		}
 	}
 
 	await message.parse();
