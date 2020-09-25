@@ -16,8 +16,8 @@ module.exports = class Help extends StarbotCommand {
 				name: '<command>',
 				optional: true,
 				description: 'any command or alias name',
+				defaultValue: 'none',
 				example: 'help',
-				code: true,
 			}],
 			aliases: [],
 			userPermissions: [],
@@ -31,13 +31,16 @@ module.exports = class Help extends StarbotCommand {
 	run(message) {
 		const { client, args, author, channel, guild } = message;
 		const { commands, aliases } = message.client;
-
-		const prefix = guild ? guild.settings.prefix : client.prefix;
+		const _guild = guild.model;
+		const prefix = guild ? _guild.prefix : client.prefix;
 
 		if (!args.length) {
-			const embed = client.embed(`For more detailed help, run \`${prefix}help <command>\``, true)
+			const embed = client.embed(stripIndents`
+				For more detailed help, run \`${prefix}help <command>\`
+				To view help for arguments, run \`${prefix}help arguments\`
+			`, true)
 				.setTitle('List of commands');
-			let sorted = client.commandGroups.sort();
+			let sorted = Array.from(client.commandGroups.values()).sort();
 
 			if (!client.isOwner(author.id)) sorted = sorted.filter(group => group !== 'hidden');
 
@@ -67,21 +70,27 @@ module.exports = class Help extends StarbotCommand {
 		commands.has(args[0].toLowerCase()) ? commands.get(args[0].toLowerCase()).name : undefined;
 
 		if (!command) {
-			return channel.embed('No valid arguments were provided');
+			return channel.send('No valid arguments were provided');
 		}
 
 		if (!(command instanceof StarbotCommand)) command = commands.get(command);
 
 		const help = [
-			`• Description: ${command.description}`,
+			`• Description: ${command.description.replace('<prefix>', prefix)}`,
 			`• Aliases: ${!command.aliases.length ? 'none' : command.aliases.join(', ')}`,
 			`• Usage: \`${prefix}${command.name}${command.usage ? ' ' : ''}${command.usage}\``,
 			`• Cooldown: ${moment(command.throttleDuration).from(0, true)}`,
 		];
 
-		if (command.userPermissions.length) {
+		if (command.userPermissions.length > 0) {
 			help.push(oneLine`
-				• Required permissions: ${fancyJoin(prettifyPermissions(command.userPermissions)) || 'none'}
+				• Required user permissions: ${fancyJoin(prettifyPermissions(command.userPermissions))}
+			`);
+		}
+
+		if (command.clientPermissions.length > 0) {
+			help.push(oneLine`
+				• Required bot permissions: ${fancyJoin(prettifyPermissions(command.clientPermissions))}
 			`);
 		}
 
@@ -94,8 +103,10 @@ module.exports = class Help extends StarbotCommand {
 		for (const argument of command.args) {
 			embed.addField(argument.name, stripIndents`
 				• Optional: ${argument.optional ? 'yes' : 'no'}
-				• Description: ${argument.description.replace(/<prefix>/g, prefix)}
-				• Example: ${argument.code ? `\`${argument.example}\`` : argument.example}
+				• Description: ${argument.description.replace(/<prefix>/g, prefix)}${argument.defaultValue ? `\n${oneLine`
+					• Default value: ${argument.defaultValue}
+				`}` : ''}
+				• Example: ${argument.code === false ? argument.example : `\`${argument.example}\``}
 			`, true);
 		}
 
