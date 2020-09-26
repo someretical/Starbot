@@ -107,7 +107,8 @@ const finalise = async (msg, tag, obj) => {
 		.setTitle('Edited tag')
 		.setDescription(stripIndents`
 			The \`${tag.name}\` tag has been successfully edited.
-			${obj.name && tag.name !== obj.name ? `\nIts new name is \`${obj.name}\`.` : ''}
+			${obj.name && tag.name !== obj.name ? `Its new name is \`${obj.name}\`.` : ''}
+			${!msg.guild.model.tagsEnabled ? '\n**Warning:** tags are current disabled.' : ''}
 		`);
 
 	if (obj.response && tag.response !== obj.response) {

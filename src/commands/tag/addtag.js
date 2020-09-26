@@ -96,7 +96,10 @@ const finalise = async (msg, tags, obj) => {
 	const embed = msg.client.embed(null, true)
 		.setThumbnail(msg.author.avatarURL())
 		.setTitle('Created tag')
-		.setDescription(`The \`${obj.name}\` tag has been successfully created.`)
+		.setDescription(`
+			The \`${obj.name}\` tag has been successfully created.
+			${!msg.guild.model.tagsEnabled ? '\n**Warning:** tags are current disabled.' : ''}
+		`)
 		.addField('Preview', preview.length > 1024 ? `${preview.substring(0, 1021)}...` : preview);
 
 	await msg.channel.send(embed);
