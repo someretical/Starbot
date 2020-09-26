@@ -1,27 +1,6 @@
 # Starbot
 This is the repository for the Starbot Discord bot.
 
-## .env fields
-```ini
-# bot token
-TOKEN=
-USER_DIRECTORY=
-PREFIX=/
-EMBED_COLOUR=PURPLE
-
-# sequelize options
-HOST=
-PORT=
-USERNAME=
-PASSWORD=
-DATABASE=
-DIALECT=
-STORAGE=
-
-# stringified JSON array
-OWNERS=[]
-```
-
 ## Data collection policy
 By being present in any server where the bot is present, you automatically consent to having the following data collected from you. 
 
@@ -47,14 +26,34 @@ The following data is stored in persistent (secondary) storage which lasts betwe
 	- Throttles - contain the ID of the user and command name(s)
 
 ## Other data accessed
-While the bot is online, it may access all data about you that the Discord API has provided. (Only the data listed above is actually stored by the bot)
+While the bot is online, it may access all data about you that the Discord API has provided. Only the data listed above is actually stored by the bot.
 
 ## Other information
-- If you wish to delete all the data the bot has stored about you, run the `purgedata` command
-- If you wish to completely opt out of data collection across all servers where both you and the bot are present, run the `optout` command
-	- This command performs the purgedata command in addition to the following actions:
-		- This command is non-reversible as it will make the bot permanently block you
-		- This will create a special persistent entry containing only your user ID so the bot knows to block you in the future.
-- **NOTE:** the above commands will also reset your user profile to 0 reputation and coins
+- If you wish to delete all the data the bot has stored about you, run the `purgedata` command.
+- If you wish to completely opt out of data collection across all servers where both you and the bot are present, run the `optout` command.
+	- This command performs the purgedata command and will create a special persistent entry containing only your user ID so the bot knows to block you in the future.
+	- This command is non-reversible as it will make the bot permanently block you.
+- **NOTE:** the above commands will also reset your user profile to 0 reputation and coins.
 
-- Alternatively, you can just leave any server where the bot is present if you do not consent to the data collection policy
+- Alternatively, you can just leave any server where the bot is present if you do not consent to the data collection policy.
+
+## .env fields
+```ini
+# bot token
+TOKEN=
+USER_DIRECTORY=
+PREFIX=/
+EMBED_COLOUR=PURPLE
+
+# sequelize options
+HOST=
+PORT=
+USERNAME=
+PASSWORD=
+DATABASE=
+DIALECT=
+STORAGE=
+
+# stringified JSON array
+OWNERS=[]
+```
