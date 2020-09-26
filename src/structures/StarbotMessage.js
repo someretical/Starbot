@@ -33,7 +33,7 @@ module.exports = Discord.Structures.extend('Message', Message => class StarbotMe
 		this.client.db.models.Tag.q.add(tag.id, () => tag.update({ uses: tag.uses + 1 }));
 	}
 
-	async parse() {
+	parse() {
 		let _guild;
 		if (this.guild) _guild = this.guild.model;
 		const prefix = _guild ? sanitise(_guild.prefix, true) : this.client.prefix;
@@ -45,15 +45,10 @@ module.exports = Discord.Structures.extend('Message', Message => class StarbotMe
 			this.raw.command = matched[2];
 		}
 
-		if (_guild && _guild.tagsEnabled && this.raw.command) {
-			const tag = this.client.db.models.Tag.cache.find(model =>
-				model.guild_id === this.guild.id && model.name === this.raw.command.toLowerCase(),
-			);
+		if (_guild.tagsEnabled && this.raw.command) {
+			const tag = this.guild.tags.find(t => t.name === this.raw.command.toLowerCase());
 
-			if (tag) {
-				await this.sendTag(tag);
-				this._isTag = true;
-			}
+			if (tag) return this.sendTag(tag);
 		}
 
 		if (!this.raw.command) return this;

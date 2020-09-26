@@ -30,8 +30,8 @@ module.exports = async (client, message) => {
 		}
 	}
 
-	await message.parse();
-	if (!message.command || message._isTag) return undefined;
+	message.parse();
+	if (!message.command) return undefined;
 
 	if (message.DM && message.command.guildOnly) {
 		return channel.embed('This command can only be used in a server!');
