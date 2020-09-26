@@ -37,7 +37,7 @@ While the bot is online, it may access all data about you that the Discord API h
 
 - Alternatively, you can just leave any server where the bot is present if you do not consent to the data collection policy.
 
-## .env fields
+## Environment variables
 ```ini
 # bot token
 TOKEN=
