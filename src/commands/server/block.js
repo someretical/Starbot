@@ -73,7 +73,7 @@ module.exports = class Block extends StarbotCommand {
 				return channel.send('One (or more) of the provided users could not be found.');
 			}
 
-			if (users.some(id => !_guild.ignoredUsers.includes(id))) {
+			if (users.some(id => _guild.ignoredUsers.includes(id))) {
 				return channel.send('One (or more) of the provided users are already blocked.');
 			}
 
@@ -96,7 +96,7 @@ module.exports = class Block extends StarbotCommand {
 				return channel.send('One (or more) of the provided roles could not be found.');
 			}
 
-			if (roles.some(id => !_guild.ignoredRoles.includes(id))) {
+			if (roles.some(id => _guild.ignoredRoles.includes(id))) {
 				return channel.send('One (or more) of the provided roles are already blocked.');
 			}
 
@@ -119,11 +119,11 @@ module.exports = class Block extends StarbotCommand {
 				return channel.send('One (or more) of the provided channels could not be found.');
 			}
 
-			if (channels.some(id => ['text', 'news'].includes(guild.channels.cache.get(id).type))) {
+			if (channels.some(id => !['text', 'news'].includes(guild.channels.cache.get(id).type))) {
 				return channel.send('One (or more) of the provided channels were not text channels.');
 			}
 
-			if (channels.some(id => !_guild.ignoredChannels.includes(id))) {
+			if (channels.some(id => _guild.ignoredChannels.includes(id))) {
 				return channel.send('One (or more) of the provided channels are already blocked.');
 			}
 
