@@ -1,6 +1,6 @@
 'use strict';
 
-const { oneLine } = require('common-tags');
+const { homepage } = require('../../../package.json');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
 
 module.exports = class DataCollection extends StarbotCommand {
@@ -23,8 +23,6 @@ module.exports = class DataCollection extends StarbotCommand {
 	run(message) {
 		const { client, channel } = message;
 
-		channel.send(client.embed(oneLine`
-			View the data collection policy [here](https://github.com/someretical/Starbot#data-collection-policy).
-		`));
+		channel.send(client.embed(`View the data collection policy [here](${homepage}#data-collection-policy).`));
 	}
 };
