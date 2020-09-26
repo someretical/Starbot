@@ -72,7 +72,7 @@ const askTag = async (msg, _guild, updated) => {
 
 const askIgnoredChannels = async (msg, _guild, updated) => {
 	const question = await msg.channel.send(stripIndents`
-		Please type in any text channels you would like the bot to ignore.
+		Please type in any text channels you would like the bot to block.
 		Both channel mentions and IDs are accepted.
 
 		Type \`done\` when you are done.
@@ -124,7 +124,7 @@ const askIgnoredChannels = async (msg, _guild, updated) => {
 
 const askIgnoredRoles = async (msg, _guild, updated) => {
 	const question = await msg.channel.send(stripIndents`
-		Please type in any roles you would like the bot to ignore. 
+		Please type in any roles you would like the bot to block. 
 		Both channel mentions and IDs are accepted.
 
 		Type \`done\` when you are done.
