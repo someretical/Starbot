@@ -3,7 +3,7 @@
 const Discord = require('discord.js');
 
 module.exports = Discord.Structures.extend('User', User => class StarbotUser extends User {
-	get ignored() {
+	get blocked() {
 		return this.client.db.models.OptOut.cache.has(this.id);
 	}
 

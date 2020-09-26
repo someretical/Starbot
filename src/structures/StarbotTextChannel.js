@@ -10,8 +10,8 @@ module.exports = Discord.Structures.extend('TextChannel', TextChannel => class S
 		this.awaiting = new Set();
 	}
 
-	ignored() {
-		return this.guild.model.ignoredChannels.includes(this.id);
+	get blocked() {
+		return this.guild.model.blockedChannels.includes(this.id);
 	}
 
 	embed(text) {

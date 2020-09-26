@@ -28,14 +28,14 @@ module.exports = class OptIn extends StarbotCommand {
 
 	async run(message) {
 		const { client, args, channel } = message;
-		const ignored = client.db.models.OptOut.cache.get(matchUsers(args[0])[0]);
+		const blocked = client.db.models.OptOut.cache.get(matchUsers(args[0])[0]);
 
-		if (!ignored) {
-			return channel.embed(`<@${ignored.user_id}> is not blocked!`);
+		if (!blocked) {
+			return channel.embed(`<@${blocked.user_id}> is not blocked!`);
 		}
 
-		await client.db.models.OptOut.q.add(ignored.user_id, () => ignored.destroy());
+		await client.db.models.OptOut.q.add(blocked.user_id, () => blocked.destroy());
 
-		return channel.embed(`<@${ignored.user_id}> has been globally unblocked.`);
+		return channel.embed(`<@${blocked.user_id}> has been globally unblocked.`);
 	}
 };

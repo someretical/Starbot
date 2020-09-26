@@ -13,7 +13,7 @@ module.exports = async (client, data, guild, channel) => {
 	} catch (err) {}
 	if (!author) return undefined;
 	await author.findCreateFind();
-	if (author.ignored) return undefined;
+	if (author.blocked) return undefined;
 
 	let msg;
 	try {
