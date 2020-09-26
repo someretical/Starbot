@@ -18,7 +18,7 @@ module.exports = class ListTags extends StarbotCommand {
 				defaultValue: '1',
 				example: '2',
 			}],
-			aliases: ['listags'],
+			aliases: ['listags', 'taglist', 'tagslist'],
 			userPermissions: [],
 			clientPermissions: [],
 			guildOnly: true,
@@ -53,9 +53,9 @@ module.exports = class ListTags extends StarbotCommand {
 			.slice((page - 1) * 15, page * 15)
 			.sort((a, b) => a.uses - b.uses)
 			.map(tag => oneLine`
-				• ${tag.name} - 
-				created by ${client.users.cache.has(tag.author_id) ? `<@${tag.author_id}>` : `Unknown user (${tag.author_id})`}
-				 - ${tag.uses} use${pluralize(tag.uses)}
+				• ${tag.name} - created by 
+				${client.users.cache.has(tag.creator_id) ? `<@${tag.creator_id}>` : `Unknown user (${tag.creator_id})`} - 
+				${tag.uses} use${pluralize(tag.uses)}
 			`);
 		const start = ((page - 1) * 15) + 1;
 		const end = Math.min(start + 14, tags.size);
