@@ -14,6 +14,7 @@
 	"main": "index.js",
 	"repository": "github:someretical/Starbot",
 	"scripts": {
+		"test": "eslint ./",
 		"lint": "npx eslint --fix ./",
 		"dev": "nodemon -r dotenv/config index.js",
 		"start": "pm2 start -r dotenv/config index.js"
