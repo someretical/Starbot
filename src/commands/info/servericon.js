@@ -51,7 +51,7 @@ module.exports = class ServerIcon extends StarbotCommand {
 
 		url = guild.iconURL({ size: parseInt(args[0]) || 1024, format: args[1] || 'webp' });
 		const embed = client.embed()
-			.setAuthor(guild.name, url, url)
+			.setAuthor(guild.name, guild.iconURL(), `https://discord.com/channels/${guild.id}`)
 			.setImage(url);
 
 		return channel.send(embed);

@@ -68,7 +68,7 @@ module.exports = class Avatar extends StarbotCommand {
 
 		const url = user.avatarURL({ size: size || 1024, format: format || 'webp' });
 		const embed = client.embed()
-			.setAuthor(user.tag, url, url)
+			.setAuthor(user.tag, user.avatarURL(), user.avatarURL())
 			.setImage(url);
 
 		return channel.send(embed);
