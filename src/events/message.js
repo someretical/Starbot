@@ -21,12 +21,11 @@ module.exports = async (client, message) => {
 
 	if (author.bot || channel.awaiting.has(author.id)) return undefined;
 	if (!client.isOwner(author.id)) {
-		if (await channel.ignored()) return undefined;
-		if (author.ignored) return undefined;
+		if (author.blocked || channel.blocked) return undefined;
 
 		if (guild) {
-			if (_guild.ignoredUsers.includes(author.id)) return undefined;
-			if (_guild.ignoredRoles.some(id => member.roles.cache.has(id))) return undefined;
+			if (_guild.blockedUsers.includes(author.id)) return undefined;
+			if (_guild.blockedRoles.some(id => member.roles.cache.has(id))) return undefined;
 		}
 	}
 

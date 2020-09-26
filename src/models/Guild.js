@@ -41,15 +41,15 @@ Guild.init({
 		type: DataTypes.BOOLEAN,
 		defaultValue: false,
 	},
-	ignoredUsers: {
+	blockedUsers: {
 		type: DataTypes.JSON,
 		defaultValue: [],
 	},
-	ignoredRoles: {
+	blockedRoles: {
 		type: DataTypes.JSON,
 		defaultValue: [],
 	},
-	ignoredChannels: {
+	blockedChannels: {
 		type: DataTypes.JSON,
 		defaultValue: [],
 	},

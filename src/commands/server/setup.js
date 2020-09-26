@@ -66,11 +66,11 @@ const askTag = async (msg, _guild, updated) => {
 		if (reason === 'cancel') return cancelCmd(msg);
 		if (reason === 'idle') return timeUp(msg);
 
-		return askIgnoredChannels(msg, _guild, updated);
+		return askBlockedChannels(msg, _guild, updated);
 	});
 };
 
-const askIgnoredChannels = async (msg, _guild, updated) => {
+const askBlockedChannels = async (msg, _guild, updated) => {
 	const question = await msg.channel.send(stripIndents`
 		Please type in any text channels you would like the bot to block.
 		Both channel mentions and IDs are accepted.
@@ -97,11 +97,11 @@ const askIgnoredChannels = async (msg, _guild, updated) => {
 			return m.channel.send('One (or more) of the provided channels were not text channels.');
 		}
 
-		if (channels.some(id => _guild.ignoredChannels.includes(id))) {
+		if (channels.some(id => _guild.blockedChannels.includes(id))) {
 			return m.channel.send('One (or more) of the provided channels are already blocked.');
 		}
 
-		updated.ignoredChannels = _guild.ignoredChannels.concat(channels);
+		updated.blockedChannels = _guild.blockedChannels.concat(channels);
 
 		return m.channel.send(
 			channels.length === 1 ?
@@ -118,11 +118,11 @@ const askIgnoredChannels = async (msg, _guild, updated) => {
 		if (reason === 'cancel') return cancelCmd(msg);
 		if (reason === 'idle') return timeUp(msg);
 
-		return askIgnoredRoles(msg, _guild, updated);
+		return askBlockedRoles(msg, _guild, updated);
 	});
 };
 
-const askIgnoredRoles = async (msg, _guild, updated) => {
+const askBlockedRoles = async (msg, _guild, updated) => {
 	const question = await msg.channel.send(stripIndents`
 		Please type in any roles you would like the bot to block. 
 		Both channel mentions and IDs are accepted.
@@ -145,11 +145,11 @@ const askIgnoredRoles = async (msg, _guild, updated) => {
 			return m.channel.send('One (or more) of the provided roles could not be found.');
 		}
 
-		if (roles.some(id => _guild.ignoredRoles.includes(id))) {
+		if (roles.some(id => _guild.blockedRoles.includes(id))) {
 			return m.channel.send('One (or more) of the provided roles are already blocked.');
 		}
 
-		updated.ignoredRoles = _guild.ignoredRoles.concat(roles);
+		updated.blockedRoles = _guild.blockedRoles.concat(roles);
 
 		return m.channel.send(
 			roles.length === 1 ?
@@ -283,9 +283,9 @@ const askReactionThreshold = async (msg, _guild, updated) => {
 const finalise = async (msg, _guild, updated) => {
 	await msg.client.db.models.Guild.q.add(msg.guild.id, () => _guild.update(updated));
 
-	const roles = _guild.ignoredRoles.length;
-	const users = _guild.ignoredUsers.length;
-	const channels = _guild.ignoredChannels.length;
+	const roles = _guild.blockedRoles.length;
+	const users = _guild.blockedUsers.length;
+	const channels = _guild.blockedChannels.length;
 	const embed = msg.client.embed(null, true)
 		.setTitle(`Settings for ${msg.guild.name}`)
 		.setThumbnail(msg.guild.iconURL())
@@ -294,9 +294,9 @@ const finalise = async (msg, _guild, updated) => {
 		.addField('Starboard enabled?', _guild.starboardEnabled ? 'Yes' : 'No', true)
 		.addField('Reaction threshold', `${_guild.reactionThreshold} ⭐`, true)
 		.addField('Tags enabled?', _guild.tagsEnabled ? 'Yes' : 'No', true)
-		.addField('Ignored roles', `${roles} role${pluralize(roles)}`, true)
-		.addField('Ignored users', `${users} user${pluralize(users)}`, true)
-		.addField('Ignored channels', `${channels} channel${pluralize(channels)}`, true)
+		.addField('Blocked roles', `${roles} role${pluralize(roles)}`, true)
+		.addField('Blocked users', `${users} user${pluralize(users)}`, true)
+		.addField('Blocked channels', `${channels} channel${pluralize(channels)}`, true)
 		.addField('\u200b', '\u200b', true);
 
 	await msg.channel.send(embed);

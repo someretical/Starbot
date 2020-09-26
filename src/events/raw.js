@@ -19,7 +19,7 @@ module.exports = async (client, packet) => {
 	const emoji = data.emoji;
 
 	if (guild) await guild.findCreateFind();
-	if (!guild || !guild.available || !channel || await channel.ignored()) return undefined;
+	if (!guild || !guild.available || !channel || channel.blocked) return undefined;
 	if (emoji && emoji.name !== '⭐') return undefined;
 
 	return client.emit(eventName, data, guild, channel);

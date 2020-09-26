@@ -24,9 +24,9 @@ module.exports = class ViewSettings extends StarbotCommand {
 		const { client, channel, guild } = message;
 
 		const _guild = guild.model;
-		const roles = _guild.ignoredRoles.length;
-		const users = _guild.ignoredUsers.length;
-		const channels = _guild.ignoredChannels.length;
+		const roles = _guild.blockedRoles.length;
+		const users = _guild.blockedUsers.length;
+		const channels = _guild.blockedChannels.length;
 
 		const embed = client.embed(null, true)
 			.setTitle(`Settings for ${guild.name}`)
@@ -36,9 +36,9 @@ module.exports = class ViewSettings extends StarbotCommand {
 			.addField('Starboard enabled?', _guild.starboardEnabled ? 'Yes' : 'No', true)
 			.addField('Reaction threshold', `${_guild.reactionThreshold} ⭐`, true)
 			.addField('Tags enabled?', _guild.tagsEnabled ? 'Yes' : 'No', true)
-			.addField('Ignored roles', `${roles} role${pluralize(roles)}`, true)
-			.addField('Ignored users', `${users} user${pluralize(users)}`, true)
-			.addField('Ignored channels', `${channels} channel${pluralize(channels)}`, true)
+			.addField('Blocked roles', `${roles} role${pluralize(roles)}`, true)
+			.addField('Blocked users', `${users} user${pluralize(users)}`, true)
+			.addField('Blocked channels', `${channels} channel${pluralize(channels)}`, true)
 			.addField('\u200b', '\u200b', true);
 
 		channel.send(embed);

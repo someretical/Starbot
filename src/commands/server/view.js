@@ -51,7 +51,7 @@ module.exports = class View extends StarbotCommand {
 			}
 		}
 
-		const { ignoredUsers: users, ignoredRoles: roles, ignoredChannels: channels } = guild.model;
+		const { blockedUsers: users, blockedRoles: roles, blockedChannels: channels } = guild.model;
 		let embed;
 
 		if (option === 'users') {

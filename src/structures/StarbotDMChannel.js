@@ -10,7 +10,7 @@ module.exports = Discord.Structures.extend('DMChannel', DMChannel => class Starb
 		this.awaiting = new Set();
 	}
 
-	ignored() {
+	get blocked() {
 		return this.client.db.models.OptOut.cache.has(this.recipient.id);
 	}
 

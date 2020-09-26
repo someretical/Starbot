@@ -27,27 +27,23 @@ class Starboard {
 		this.channel = this.guild.channels.cache.get(_guild.starboard_id);
 
 		// Check if message author has opted out
-		const _1 = message.author.ignored;
-		// Check if channel is ignored in guild only as this cannot be run in a DM channel
-		const _2 = _guild.ignoredChannels.includes(message.channel.id);
-
-		if (_1 || _2) return false;
+		if (message.author.blocked) return false;
+		// Check if channel is blocked in guild only as this cannot be run in a DM channel
+		if (_guild.blockedChannels.includes(message.channel.id)) return false;
 
 		// Commands will have already validated the user_id
 		if (user_id && !cmd) {
 			// Check if user_id has opted out
-			const _3 = this.client.db.models.OptOut.cache.has(user_id);
-			const _4 = _guild.ignoredUsers.includes(user_id);
-			const _5 = message.author.id === user_id && !this.client.isOwner(user_id);
+			if (this.client.db.models.OptOut.cache.has(user_id)) return false;
+			if (_guild.blockedUsers.includes(user_id)) return false;
+			if (message.author.id === user_id && !this.client.isOwner(user_id)) return false;
 
 			let member;
 			try {
 				member = await this.guild.members.fetch(user_id);
 			// eslint-disable-next-line no-empty
 			} catch (err) {}
-			const _6 = member ? member.roles.cache.some(({ id }) => _guild.ignoredRoles.includes(id)) : false;
-
-			if (_3 || _4 || _5 || _6) return false;
+			if (member ? member.roles.cache.some(({ id }) => _guild.blockedRoles.includes(id)) : false) return false;
 		}
 
 		return true;
@@ -66,7 +62,7 @@ class Starboard {
 			const reactors = await Starboard.fetchAllReactors(reaction);
 
 			reactors.map(({ id }) =>
-				!reactions.cmd.includes(id) && !this.guild.model.ignoredUsers.includes(id) && !optedOut.has(id) ?
+				!reactions.cmd.includes(id) && !this.guild.model.blockedUsers.includes(id) && !optedOut.has(id) ?
 					reactions.msg.push(id) :
 					undefined,
 			);
@@ -91,9 +87,7 @@ class Starboard {
 		const _guild = this.guild.model;
 
 		if (this.channel && _guild.starboardEnabled && star.totalReactionCount >= _guild.reactionThreshold) {
-			const ignored = await this.channel.ignored();
-
-			if (!ignored && this.channel.clientHasPermissions()) {
+			if (!this.channel.blocked && this.channel.clientHasPermissions()) {
 				botMessage = star.botMessage_id ? await this.channel.messages.fetch(star.botMessage_id) : undefined;
 
 				const send = () => this.channel.send(Starboard.buildStarboardMessage(message, star.totalReactionCount));
@@ -180,7 +174,7 @@ class Starboard {
 		const _guild = this.guild.model;
 		const optedOut = this.client.db.models.OptOut.cache;
 		_reactions.cmd = star.reactions.cmd.filter(id =>
-			!_guild.ignoredUsers.includes(id) && !optedOut.has(id),
+			!_guild.blockedUsers.includes(id) && !optedOut.has(id),
 		);
 
 		const reaction = message.reactions.cache.get('⭐');
@@ -190,7 +184,7 @@ class Starboard {
 
 			reactors.map(({ id }) =>
 				!star.reactions.cmd.includes(id) &&
-				!_guild.ignoredUsers.includes(id) &&
+				!_guild.blockedUsers.includes(id) &&
 				!optedOut.has(id) ? _reactions.msg.push(id) : undefined,
 			);
 		}

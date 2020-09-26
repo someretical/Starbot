@@ -69,12 +69,12 @@ module.exports = class Unblock extends StarbotCommand {
 				return channel.send('Please provide at least 1 valid user resolvable!');
 			}
 
-			if (users.some(id => !_guild.ignoredUsers.includes(id))) {
+			if (users.some(id => !_guild.blockedUsers.includes(id))) {
 				return channel.send('One (or more) of the provided users are not blocked.');
 			}
 
 			await client.db.models.Guild.q.add(guild.id, () =>
-				_guild.update({ ignoredUsers: _guild.ignoredUsers.filter(id => !users.includes(id)) }),
+				_guild.update({ blockedUsers: _guild.blockedUsers.filter(id => !users.includes(id)) }),
 			);
 
 			res = users.length === 1 ?
@@ -88,12 +88,12 @@ module.exports = class Unblock extends StarbotCommand {
 				return channel.send('Please provide at least 1 valid role resolvable!');
 			}
 
-			if (roles.some(id => !_guild.ignoredRoles.includes(id))) {
+			if (roles.some(id => !_guild.blockedRoles.includes(id))) {
 				return channel.send('One (or more) of the provided roles are not blocked.');
 			}
 
 			await client.db.models.Guild.q.add(guild.id, () =>
-				_guild.update({ ignoredRoles: _guild.ignoredRoles.filter(id => !roles.includes(id)) }),
+				_guild.update({ blockedRoles: _guild.blockedRoles.filter(id => !roles.includes(id)) }),
 			);
 
 			res = roles.length === 1 ?
@@ -107,12 +107,12 @@ module.exports = class Unblock extends StarbotCommand {
 				return channel.send('Please provide at least 1 valid channel resolvable!');
 			}
 
-			if (channels.some(id => !_guild.ignoredChannels.includes(id))) {
+			if (channels.some(id => !_guild.blockedChannels.includes(id))) {
 				return channel.send('One (or more) of the provided channels are not blocked.');
 			}
 
 			await client.db.models.Guild.q.add(guild.id, () =>
-				_guild.update({ ignoredChannels: _guild.ignoredChannels.filter(id => !channels.includes(id)) }),
+				_guild.update({ blockedChannels: _guild.blockedChannels.filter(id => !channels.includes(id)) }),
 			);
 
 			res = channels.length === 1 ?
