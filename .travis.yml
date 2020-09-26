@@ -1,3 +1,11 @@
 language: node_js
 node_js:
   - "12.18.4"
+env:
+  global: 
+    - EMBED_COLOUR=PURPLE
+    - HOST=localhost
+    - DATABASE=database
+    - DIALECT=sqlite
+    - STORAGE=./data/database.sqlite
+    - OWNERS=["285571328155582465"]
