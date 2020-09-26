@@ -23,6 +23,6 @@ module.exports = class DataCollection extends StarbotCommand {
 	run(message) {
 		const { client, channel } = message;
 
-		channel.send(client.embed(`View the data collection policy [here](${homepage}#data-collection-policy).`));
+		channel.send(client.embed(`View the data collection policy [here](${homepage}).`));
 	}
 };
