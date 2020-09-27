@@ -48,7 +48,7 @@ class Starbot extends Discord.Client {
 		this.loadCommands();
 
 		const login = () => this
-			.login(process.env.TOKEN)
+			.login()
 			.catch(err => {
 				Logger.err('Failed to log in. Retrying in 30 seconds...');
 				Logger.stack(err);
