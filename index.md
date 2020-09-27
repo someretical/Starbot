@@ -1,8 +1,5 @@
 # Invite Starbot to your server
-Currently not available
-{% comment %} 
-    [Click here]() 
-{% endcomment %}
+[Click here](https://discord.com/api/oauth2/authorize?client_id=679247586082947083&permissions=117760&scope=bot) 
 
 # Data collection policy
 By being present in any server where the bot is present, you automatically consent to having the following data collected from you. 
