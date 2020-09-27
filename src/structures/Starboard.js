@@ -236,7 +236,7 @@ class Starboard {
 
 		const embed = new Discord.MessageEmbed()
 			.setColor(message.client.embedColour)
-			.setAuthor(message.guild.name, message.guild.iconURL())
+			.setAuthor(message.guild.name, message.guild.iconURL(), `https://discord.com/channels/${message.guild.id}`)
 			.setThumbnail(message.author.avatarURL())
 			.addField('Author', message.author.toString(), true)
 			.addField('Channel', `<#${message.channel.id}>\n[Jump to message](${message.url})`, true)
