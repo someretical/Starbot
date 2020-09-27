@@ -31,19 +31,19 @@ module.exports = class UserInfo extends StarbotCommand {
 
 	async run(message) {
 		const { client, args, author, channel, guild } = message;
-		let user, member;
 
+		let user, member;
 		if (!args[0]) {
 			user = author;
 			member = message.member;
-		}
+		} else {
+			try {
+				user = await client.users.fetch(matchUsers(args[0])[0]);
 
-		try {
-			user = await client.users.fetch(!args[0] ? author.id : matchUsers(args[0])[0]);
-
-			if (guild) member = await guild.members.fetch(user.id);
-		} catch (err) {
-			return channel.send('Please provide a valid user resolvable!');
+				if (guild) member = await guild.members.fetch(user.id);
+			} catch (err) {
+				return channel.send('Please provide a valid user resolvable!');
+			}
 		}
 
 		const embed = client.embed()

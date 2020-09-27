@@ -33,8 +33,11 @@ module.exports = class PurgeData extends StarbotCommand {
 		if (await command.checkThrottle(message, 'purgedata')) return undefined;
 
 		if (client.isOwner(author.id)) {
-			const id = matchUsers(args[0])[0];
+			if (!args[0]) {
+				return channel.send('Please provide a user resolvable!');
+			}
 
+			const id = matchUsers(args[0])[0];
 			const user = client.db.models.User.cache.get(id);
 			if (!user) {
 				return channel.send('The specified user has not been added yet.');

@@ -48,12 +48,12 @@ module.exports = class Avatar extends StarbotCommand {
 		if (!args[0]) {
 			user = author;
 			userArg = false;
-		}
-
-		try {
-			user = await client.users.fetch(matchUsers(args[0])[0]);
-		} catch (err) {
-			return channel.send('Please provide a valid user resolvable!');
+		} else {
+			try {
+				user = await client.users.fetch(matchUsers(args[0])[0]);
+			} catch (err) {
+				return channel.send('Please provide a valid user resolvable!');
+			}
 		}
 
 		const size = parseInt(userArg ? args[1] : args[0]);
