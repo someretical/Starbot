@@ -30,7 +30,7 @@ module.exports = class UnpackID extends StarbotCommand {
 		const { client, args, channel } = message;
 
 		if (!args[0] || /[\D]/.test(args[0])) {
-			return channel.embed('Please provide a valid ID!');
+			return channel.send('Please provide a valid ID!');
 		}
 
 		const { date, workerID, processID, increment, binary } = SnowflakeUtil.deconstruct(args[0]);
