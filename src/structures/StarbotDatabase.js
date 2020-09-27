@@ -5,16 +5,11 @@ const path = require('path');
 const Sequelize = require('sequelize');
 const Logger = require('../util/Logger.js');
 
-const sequelize = new Sequelize({
-	host: process.env.HOST,
-	port: process.env.PORT,
-	username: process.env.USERNAME,
-	password: process.env.PASSWORD,
-	database: process.env.DATABASE,
+const sequelize = new Sequelize(process.env.DIALECT === 'sqlite' ? {
 	dialect: process.env.DIALECT,
 	storage: process.env.STORAGE,
 	logging: false,
-});
+} : process.env.PGSTRING);
 
 class StarbotDatabase {
 	static get db() {
@@ -22,16 +17,18 @@ class StarbotDatabase {
 	}
 
 	static async loadModels() {
+		const force = process.argv.includes('--force') || process.argv.includes('-f');
 		const modelsPath = path.join(__dirname, '..', 'models');
 		const files = fs.readdirSync(modelsPath);
 
-		for (const file of files) {
+		await require(`${modelsPath}/Guild.js`).sync({ force });
+		await require(`${modelsPath}/User.js`).sync({ force });
+
+		for (const file of files.filter(f => !['Guild.js', 'User.js'].includes(f))) {
 			if (!file.endsWith('.js')) {
 				Logger.warn(`Skipping model ${file}`);
 				continue;
 			}
-
-			const force = process.argv.includes('--force') || process.argv.includes('-f');
 
 			// eslint-disable-next-line no-await-in-loop
 			await require(`${modelsPath}/${file}`).sync({ force });
