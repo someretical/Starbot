@@ -31,8 +31,7 @@ module.exports = class Help extends StarbotCommand {
 	run(message) {
 		const { client, args, author, channel, guild } = message;
 		const { commands, aliases } = message.client;
-		const _guild = guild.model;
-		const prefix = guild ? _guild.prefix : client.prefix;
+		const prefix = guild ? guild.model.prefix : client.prefix;
 
 		if (!args.length) {
 			const embed = client.embed(stripIndents`
