@@ -17,7 +17,7 @@
 		"test": "eslint ./",
 		"lint": "npx eslint --fix ./",
 		"dev": "nodemon -r dotenv/config index.js",
-		"start": "pm2 start -r dotenv/config index.js"
+		"start": "pm2 start pm2.config.js"
 	},
 	"dependencies": {
 		"common-tags": "^1.8.0",
@@ -26,6 +26,7 @@
 		"moment": "^2.27.0",
 		"pg": "^8.3.3",
 		"pg-hstore": "^2.3.3",
+		"pm2": "^4.4.1",
 		"sequelize": "^6.3.5"
 	},
 	"devDependencies": {
