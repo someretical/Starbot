@@ -4,19 +4,18 @@ This is the repository for the Starbot Discord bot.
 ## Environment variables
 ```ini
 # bot token
-TOKEN=
+DISCORD_TOKEN=
 USER_DIRECTORY=
 PREFIX=/
 EMBED_COLOUR=PURPLE
 
 # sequelize options
-HOST=
-PORT=
-USERNAME=
-PASSWORD=
-DATABASE=
-DIALECT=
-STORAGE=
+
+# production
+PGSTRING=
+# development
+DIALECT=sqlite
+STORAGE=./data/database.sqlite
 
 # stringified JSON array
 OWNERS=[]
