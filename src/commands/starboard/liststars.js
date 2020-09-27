@@ -57,7 +57,7 @@ module.exports = class ListStars extends StarbotCommand {
 				${index + 1}. 
 				[Jump to message](https://discord.com/channels/${star.guild_id}/${star.channel_id}/${star.message_id}) by 
 				${client.users.cache.has(star.author_id) ? `<@${star.author_id}>` : `Unknown user (${star.author_id})`} - 
-				${star.totalReactionCount} ${getStarEmoji(star.totalReactionCount)}
+				${star.totalStarCount} ${getStarEmoji(star.totalStarCount)}
 			`);
 		const start = ((page - 1) * 15) + 1;
 		const end = Math.min(start + 14, stars.size);
