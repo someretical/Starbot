@@ -54,7 +54,8 @@ class Util {
 
 	static sanitise(result, regex = false) {
 		let cleansed = result.toString()
-			.replace(process.env.DISCORD_TOKEN, 'here is the token you retard')
+			.replace(process.env.DISCORD_TOKEN, 'here is the discord token you retard')
+			.replace(process.env.PGSTRING, 'here is the pg string you retard')
 			.replace(/@(everyone|here)/g, '@\u200b$1');
 
 		if (process.env.USER_DIRECTORY) {
