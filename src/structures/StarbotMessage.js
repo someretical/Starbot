@@ -45,7 +45,7 @@ module.exports = Discord.Structures.extend('Message', Message => class StarbotMe
 			this.raw.command = matched[2];
 		}
 
-		if (_guild.tagsEnabled && this.raw.command) {
+		if (_guild && _guild.tagsEnabled && this.raw.command) {
 			const tag = this.guild.tags.find(t => t.name === this.raw.command.toLowerCase());
 
 			if (tag) return this.sendTag(tag);
