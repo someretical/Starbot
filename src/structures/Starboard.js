@@ -8,7 +8,10 @@ class Starboard {
 	constructor(guild) {
 		this.client = guild.client;
 		this.guild = guild;
-		this.channel = undefined;
+	}
+
+	get channel() {
+		return this.guild.channels.cache.get(this.guild.model.starboard_id);
 	}
 
 	getStars(id = undefined) {
@@ -23,8 +26,6 @@ class Starboard {
 		// Cmd parameter makes sure repeated calls are not made to the database
 		// As commands would have already checked user_id for discrepencies
 		const _guild = this.guild.model;
-
-		this.channel = this.guild.channels.cache.get(_guild.starboard_id);
 
 		// Check if message author has opted out
 		if (message.author.blocked) return false;
@@ -51,6 +52,7 @@ class Starboard {
 
 	async _addNewStar(message, user_id = undefined) {
 		const optedOut = this.client.db.models.OptOut.cache;
+		const { blockedUsers } = this.guild.model;
 		const reactions = { msg: [], cmd: [] };
 
 		// User_id only provided if adding star via command for first time
@@ -62,7 +64,7 @@ class Starboard {
 			const reactors = await Starboard.fetchAllReactors(reaction);
 
 			reactors.map(({ id }) =>
-				!reactions.cmd.includes(id) && !this.guild.model.blockedUsers.includes(id) && !optedOut.has(id) ?
+				!reactions.cmd.includes(id) && !blockedUsers.includes(id) && !optedOut.has(id) ?
 					reactions.msg.push(id) :
 					undefined,
 			);
@@ -84,19 +86,20 @@ class Starboard {
 
 	async _displayStar(message, star) {
 		let botMessage;
+		const channel = this.channel;
 		const _guild = this.guild.model;
 
-		if (this.channel && _guild.starboardEnabled && star.totalReactionCount >= _guild.reactionThreshold) {
-			if (!this.channel.blocked && this.channel.clientHasPermissions()) {
-				botMessage = star.botMessage_id ? await this.channel.messages.fetch(star.botMessage_id) : undefined;
+		if (channel && _guild.starboardEnabled && star.totalStarCount >= _guild.reactionThreshold) {
+			if (!channel.blocked && channel.clientHasPermissions()) {
+				botMessage = star.botMessage_id ? await channel.messages.fetch(star.botMessage_id) : undefined;
 
-				const send = () => this.channel.send(Starboard.buildStarboardMessage(message, star.totalReactionCount));
+				const send = () => channel.send(Starboard.buildStarboardMessage(message, star.totalStarCount));
 
 				try {
 					if (botMessage) {
-						botMessage = await this.channel.messages.cache
+						botMessage = await channel.messages.cache
 							.get(botMessage.id)
-							.edit(Starboard.buildStarboardMessage(message, star.totalReactionCount));
+							.edit(Starboard.buildStarboardMessage(message, star.totalStarCount));
 					} else {
 						botMessage = await send();
 					}
@@ -110,8 +113,8 @@ class Starboard {
 	}
 
 	async addStar(message, user_id, cmd = false) {
-		const invalid = await this._checkValidity(message, user_id, cmd);
-		if (!invalid) return undefined;
+		const valid = await this._checkValidity(message, user_id, cmd);
+		if (!valid) return undefined;
 
 		return this.client.db.models.Star.q.add(message.id, () => this._addStar(message, user_id, cmd));
 	}
@@ -134,8 +137,8 @@ class Starboard {
 	}
 
 	async removeStar(message, user_id, cmd = false) {
-		const invalid = await this._checkValidity(message, user_id, cmd);
-		if (!invalid) return undefined;
+		const valid = await this._checkValidity(message, user_id, cmd);
+		if (!valid) return undefined;
 
 		return this.client.db.models.Star.q.add(message.id, () => this._removeStar(message, user_id, cmd));
 	}
@@ -160,8 +163,8 @@ class Starboard {
 	}
 
 	async fixStar(message) {
-		const invalid = await this._checkValidity(message);
-		if (!invalid) return undefined;
+		const valid = await this._checkValidity(message);
+		if (!valid) return undefined;
 
 		return this.client.db.models.Star.q.add(message.id, () => this._fixStar(message));
 	}
@@ -171,11 +174,9 @@ class Starboard {
 		if (!star) return this._addNewStar(message);
 		const _reactions = star.toJSON().reactions;
 
-		const _guild = this.guild.model;
+		const { blockedUsers } = this.guild.model;
 		const optedOut = this.client.db.models.OptOut.cache;
-		_reactions.cmd = star.reactions.cmd.filter(id =>
-			!_guild.blockedUsers.includes(id) && !optedOut.has(id),
-		);
+		_reactions.cmd = star.reactions.cmd.filter(id => !blockedUsers.includes(id) && !optedOut.has(id));
 
 		const reaction = message.reactions.cache.get('⭐');
 		if (reaction) {
@@ -184,7 +185,7 @@ class Starboard {
 
 			reactors.map(({ id }) =>
 				!star.reactions.cmd.includes(id) &&
-				!_guild.blockedUsers.includes(id) &&
+				!blockedUsers.includes(id) &&
 				!optedOut.has(id) ? _reactions.msg.push(id) : undefined,
 			);
 		}
@@ -220,10 +221,9 @@ class Starboard {
 
 		const fetch = async options => {
 			const fetchedUsers = await reaction.users.fetch(options);
-			if (!fetchedUsers.size) return users;
-
 			for (const [id, user] of fetchedUsers) users.set(id, user);
 
+			if (fetchedUsers.size === reaction.count) return users;
 			return fetch({ after: fetchedUsers.lastKey() });
 		};
 
