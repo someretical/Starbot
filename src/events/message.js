@@ -33,18 +33,18 @@ module.exports = async (client, message) => {
 	if (!message.command) return undefined;
 
 	if (message.DM && message.command.guildOnly) {
-		return channel.embed('This command can only be used in a server!');
+		return channel.send('This command can only be used in a server!');
 	}
 
 	let permissions = message.missingAuthorPermissions;
 	if (permissions.length && !client.isOwner(author.id)) {
 		permissions = fancyJoin(prettifyPermissions(permissions));
 
-		return channel.embed(`You need the following permissions to run this command: ${permissions}`);
+		return channel.send(`You need the following permissions to run this command: ${permissions}`);
 	}
 
 	if (message.command.ownerOnly && !client.isOwner(author.id)) {
-		return channel.embed('This is an owner-only command!');
+		return channel.send('This is an owner-only command!');
 	}
 
 	if (await message.command.checkThrottle(message)) return undefined;
@@ -56,7 +56,7 @@ module.exports = async (client, message) => {
 			const missingPermissions = message.command.clientPermissions.filter(perm => !_permissions.has(perm));
 			const formatted = fancyJoin(prettifyPermissions(missingPermissions));
 
-			return channel.embed(`The bot needs the following permissions to run this command: ${formatted}`);
+			return channel.send(`The bot needs the following permissions to run this command: ${formatted}`);
 		}
 	}
 
