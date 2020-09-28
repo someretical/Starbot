@@ -5,10 +5,7 @@ const { fancyJoin, prettifyPermissions } = require('../util/Util.js');
 
 module.exports = async (client, message) => {
 	const { author, channel, guild, member } = message;
-	if (!client._ready || message.system || (guild && !guild.available)) return undefined;
-
-	// Check if author is a webhook
-	if (author.bot && author.discriminator === '0000') return undefined;
+	if (!client._ready || message.system || message.webhookID || (guild && !guild.available)) return undefined;
 
 	await author.findCreateFind();
 	let _guild;
