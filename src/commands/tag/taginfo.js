@@ -52,8 +52,10 @@ module.exports = class TagInfo extends StarbotCommand {
 			.addField('Creator', creator, true)
 			.addField('Created on', moment(tag.createdAt).format('Do MMM YYYY'), true);
 
-		if (tag.updatedAt && tag.lastContentUpdate.getTime() !== tag.createdAt.getTime()) {
-			embed.addField('Last updated at', moment(tag.updatedAt).format('Do MMM YYYY'), true);
+		if (tag.updatedAt) {
+			if (tag.lastContentUpdate.getTime() !== tag.createdAt.getTime()) {
+				embed.addField('Last updated at', moment(tag.updatedAt).format('Do MMM YYYY'), true);
+			}
 		}
 
 		embed.addField('Uses', `${tag.uses} use${pluralize(tag.uses)}`, true);
