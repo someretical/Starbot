@@ -20,7 +20,7 @@ module.exports = async (client, message) => {
 	if (!client.isOwner(author.id)) {
 		if (author.blocked || channel.blocked) return undefined;
 
-		if (guild) {
+		if (guild && author.id !== guild.ownerID) {
 			if (_guild.blockedUsers.includes(author.id)) return undefined;
 			if (_guild.blockedRoles.some(id => member.roles.cache.has(id))) return undefined;
 		}

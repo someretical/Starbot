@@ -36,7 +36,7 @@ class Starboard {
 		if (user_id && !cmd) {
 			// Check if user_id has opted out
 			if (this.client.db.models.OptOut.cache.has(user_id)) return false;
-			if (_guild.blockedUsers.includes(user_id)) return false;
+			if (_guild.blockedUsers.includes(user_id) && user_id !== message.guild.ownerID) return false;
 			if (message.author.id === user_id && !this.client.isOwner(user_id)) return false;
 
 			let member;

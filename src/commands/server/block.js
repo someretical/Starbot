@@ -77,6 +77,10 @@ module.exports = class Block extends StarbotCommand {
 				return channel.send('One (or more) of the provided users are already blocked.');
 			}
 
+			if (users.some(id => guild.ownerID === id)) {
+				return channel.send('The guild owner is exempt from being blocked.');
+			}
+
 			await client.db.models.Guild.q.add(guild.id, () =>
 				_guild.update({ blockedUsers: _guild.blockedUsers.concat(users) }),
 			);
