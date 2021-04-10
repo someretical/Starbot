@@ -3,84 +3,129 @@
 const fs = require('fs');
 const path = require('path');
 const Discord = require('discord.js');
+const Constants = require('../util/Constants.js');
 const Logger = require('../util/Logger.js');
-const { pluralize: s } = require('../util/Util.js');
 const StarbotDatabase = require('./StarbotDatabase.js');
+const { pluralise: s } = require('../util/Util.js');
 
 class Starbot extends Discord.Client {
 	constructor(options) {
 		super(options);
 
+		this.hooks = new Discord.Collection();
 		this.commands = new Discord.Collection();
 		this.aliases = new Discord.Collection();
-		this.commandGroups = new Set();
+		this.commandGroups = [];
 		this.db = StarbotDatabase.db;
-		this.prefix = process.env.PREFIX;
-		this.embedColour = process.env.EMBED_COLOUR;
-		this.owners = JSON.parse(process.env.OWNERS);
-		this.basePermissions = ['VIEW_CHANNEL', 'SEND_MESSAGES', 'EMBED_LINKS', 'ATTACH_FILES', 'READ_MESSAGE_HISTORY'];
+		this.prefix = Constants.PREFIX;
+		this.embedColour = Constants.EMBED_COLOUR;
+		this.ownerID = undefined;
+		this.permissions = new Discord.Permissions(Constants.PERMISSIONS);
 		this._ready = false;
+		this._hrtime = undefined;
 	}
 
-	snowflake(timestamp) {
-		return Discord.SnowflakeUtil.generate(timestamp);
-	}
+	embed(options) {
+		const embed = new Discord.MessageEmbed().setColor(this.embedColour);
 
-	embed(text = null, fancy = false) {
-		const homepageURL = require(path.resolve('package.json')).homepage;
-		const newEmbed = new Discord.MessageEmbed().setColor(this.embedColour);
+		if (!options) return embed;
 
-		if (typeof text === 'string') newEmbed.setDescription(text);
+		if (typeof options === 'string') return embed.setDescription(options);
 
-		if (fancy) {
-			newEmbed.setAuthor(this.user.username, this.user.displayAvatarURL(), homepageURL).setTimestamp();
+		if (options.author && this._ready) {
+			embed.setAuthor(
+				this.user.username,
+				this.user.displayAvatarURL(),
+				Constants.PACKAGE.homepage,
+			);
+
+			options.ts = true;
+			options.tn = true;
 		}
 
-		return newEmbed;
+		if (options.ts) embed.setTimestamp();
+
+		if (options.tn) embed.setThumbnail(this.user.displayAvatarURL());
+
+		return embed;
 	}
 
 	isOwner(id) {
-		return this.owners.includes(id);
+		if (!this._ready) return false;
+
+		return this.ownerID === id;
 	}
 
-	run() {
+	init() {
+		Logger.info('Initialising client...');
+		this._hrtime = process.hrtime();
+
+		this.loadHooks();
 		this.loadEvents();
 		this.loadCommands();
 
-		const login = () => this
-			.login()
-			.catch(err => {
-				Logger.err('Failed to log in. Retrying in 30 seconds...');
+		const connect = async () => {
+			try {
+				await StarbotDatabase.authenticate();
+
+				this.login();
+			} catch (err) {
+				this.db.close();
+
+				Logger.err('Failed to connect. Retrying in 10 seconds...');
 				Logger.stack(err);
 
-				setTimeout(login, 30000);
-			});
+				setTimeout(
+					connect,
+					10000,
+				);
+			}
+		};
 
-		const auth = () => StarbotDatabase
-			.authenticate()
-			.then(login)
-			.catch(async err => {
-				Logger.err('Failed to authenticate with database');
-				Logger.stack(err);
-				await this.db.close();
+		connect();
+	}
 
-				Logger.info('Attempting to connect again in 5 seconds...');
-				return setTimeout(auth, 5000);
-			});
+	loadHooks() {
+		const beforeHooks = fs.readdirSync('./src/hooks/before/')
+			.filter(file => path.extname(file) === '.js')
+			.map(file => `../hooks/before/${file}`);
+		const afterHooks = fs.readdirSync('./src/hooks/after/')
+			.filter(file => path.extname(file) === '.js')
+			.map(file => `../hooks/after/${file}`);
+		const paths = beforeHooks.concat(afterHooks);
 
-		auth();
+		for (const p of paths) {
+			this.hooks.set(
+				path.basename(
+					p,
+					path.extname(p),
+				),
+				require(p),
+			);
+		}
+
+		Logger.info(`Loaded ${paths.length} hook${s(paths.length)}`);
 	}
 
 	loadEvents() {
-		const events = fs.readdirSync(path.resolve(__dirname, '..', 'events'))
+		const events = fs.readdirSync('./src/events/')
 			.filter(file => path.extname(file) === '.js');
-		let counter = 0, eventPath = '', eventName = '';
+		let counter = 0;
 
 		for (const event of events) {
-			eventPath = path.resolve(__dirname, '..', 'events', event);
-			eventName = path.basename(eventPath, path.extname(eventPath));
+			const eventPath = `../events/${event}`;
+			const eventName = path.basename(
+				eventPath,
+				path.extname(eventPath),
+			);
 
-			this.on(eventName, require(eventPath).bind(null, this));
+			this.on(
+				eventName,
+				require(eventPath).bind(
+					null,
+					this,
+				),
+			);
 			delete require.cache[require.resolve(eventPath)];
 
 			counter++;
@@ -90,27 +135,34 @@ class Starbot extends Discord.Client {
 	}
 
 	loadCommands() {
-		const dirPaths = fs.readdirSync(path.resolve(__dirname, '..', 'commands'))
-			.map(group => path.resolve(__dirname, '..', 'commands', group))
-			.filter(dir => fs.lstatSync(dir).isDirectory());
-		let counter = 0, commandPaths = [], command;
+		const dirs = fs.readdirSync('./src/commands/')
+			.map(group => `./src/commands/${group}`)
+			.filter(name => fs.lstatSync(name).isDirectory());
+		let counter = 0;
 
-		for (const dir of dirPaths) {
-			commandPaths = fs.readdirSync(dir)
-				.filter(file => path.extname(file) === '.js')
-				.map(name => path.resolve(dir, name));
+		this.commandGroups = dirs;
+
+		for (const dir of dirs) {
+			const commandPaths = fs.readdirSync(dir)
+				.filter(fileName => path.extname(fileName) === '.js')
+				.map(fileName => `../commands/${dir.split('/').pop()}/${fileName}`);
 
 			for (const commandPath of commandPaths) {
-				command = new (require(commandPath))(this);
+				const command = new (require(commandPath))(this);
 
-				this.commands.set(command.name, command);
-				command.aliases.map(alias => this.aliases.set(alias, command.name));
-				this.commandGroups.add(command.group);
+				this.commands.set(
+					command.name,
+					command,
+				);
+				command.aliases.map(alias => this.aliases.set(
+					alias,
+					command.name,
+				));
 				counter++;
 			}
 		}
 
-		Logger.info(`Loaded ${dirPaths.length} group${s(dirPaths.length)} & ${counter} command${s(counter)}`);
+		Logger.info(`Loaded ${dirs.length} group${s(dirs.length)} & ${counter} command${s(counter)}`);
 	}
 }
 

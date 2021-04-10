@@ -1,3 +1,3 @@
 'use strict';
 
-module.exports = (client, guild) => client._ready ? guild.findCreateFind() : undefined;
+module.exports = (client, guild) => guild.findCreateFind();

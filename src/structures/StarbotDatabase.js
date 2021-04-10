@@ -1,15 +1,20 @@
 'use strict';
 
 const fs = require('fs');
-const path = require('path');
 const Sequelize = require('sequelize');
 const Logger = require('../util/Logger.js');
+const { pluralise: s } = require('../util/Util.js');
 
-const sequelize = new Sequelize(process.env.DIALECT === 'sqlite' ? {
-	dialect: process.env.DIALECT,
-	storage: process.env.STORAGE,
-	logging: false,
-} : process.env.PGSTRING);
+const sequelize = new Sequelize(process.env.DIALECT === 'sqlite'
+	? {
+		dialect: process.env.DIALECT,
+		storage: process.env.STORAGE,
+		logging: false,
+	}
+	: {
+		host:       process.env.PGSTRING,
+		timestamps: false,
+	});
 
 class StarbotDatabase {
 	static get db() {
@@ -17,30 +22,29 @@ class StarbotDatabase {
 	}
 
 	static async loadModels() {
-		const force = process.argv.includes('--force') || process.argv.includes('-f');
-		const modelsPath = path.join(__dirname, '..', 'models');
-		const files = fs.readdirSync(modelsPath);
+		const modelPromises = [];
+		let counter = 0;
 
-		await require(`${modelsPath}/Guild.js`).sync({ force });
-		await require(`${modelsPath}/User.js`).sync({ force });
-
-		for (const file of files.filter(f => !['Guild.js', 'User.js'].includes(f))) {
+		for (const file of fs.readdirSync('./src/models/')) {
 			if (!file.endsWith('.js')) {
-				Logger.warn(`Skipping model ${file}`);
+				Logger.warn(`Skipping file ${file}`);
 				continue;
 			}
 
-			// eslint-disable-next-line no-await-in-loop
-			await require(`${modelsPath}/${file}`).sync({ force });
+			modelPromises.push(require(`../models/${file}`).sync());
+			counter++;
 		}
+
+		await Promise.all(modelPromises);
+
+		Logger.info(`Loaded ${counter} model${s(counter)}`);
 	}
 
 	static async authenticate() {
 		await sequelize.authenticate();
-		Logger.info('Successfully authenticated with database');
+		Logger.info('Authenticated with database');
 
-		await this.loadModels();
-		Logger.info('Successfully loaded models');
+		StarbotDatabase.loadModels();
 	}
 }
 

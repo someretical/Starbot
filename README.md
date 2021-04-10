@@ -3,22 +3,12 @@ This is the repository for the Starbot Discord bot.
 
 ## Environment variables
 ```ini
-# client options
+# Discord
 DISCORD_TOKEN=
-USER_DIRECTORY=
-PREFIX=/
-EMBED_COLOUR=PURPLE
 
-# sequelize options
-
-# production
+# Sequelize
 PGSTRING=
-# development
-DIALECT=sqlite
-STORAGE=./data/database.sqlite
-
-# stringified JSON array
-OWNERS=[]
+DIALECT=
 ```
 
 ## Create http server

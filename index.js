@@ -1,18 +1,9 @@
 'use strict';
 
-require('./src/structures/StarbotDMChannel.js');
-require('./src/structures/StarbotGuild.js');
-require('./src/structures/StarbotMessage.js');
-require('./src/structures/StarbotTextChannel.js');
-require('./src/structures/StarbotUser.js');
-
-const Logger = require('./src/util/Logger.js');
+const fs = require('fs');
 const Starbot = require('./src/structures/Starbot.js');
-const client = new Starbot({ retryLimit: 0 });
+const { CLIENT_OPTIONS } = require('./src/util/Constants.js');
 
-client.run();
+for (const file of fs.readdirSync('./src/structures/extended/')) require(`./src/structures/extended/${file}`);
 
-process.on('unhandledRejection', err => {
-	Logger.err('An unhandled promise rejection occured');
-	Logger.stack(err);
-});
+new Starbot(CLIENT_OPTIONS).init();

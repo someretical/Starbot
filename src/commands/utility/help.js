@@ -1,112 +1,144 @@
 'use strict';
 
-const { oneLine, stripIndents } = require('common-tags');
-const moment = require('moment');
+const path = require('path');
+const { stripIndents } = require('common-tags');
 const StarbotCommand = require('../../structures/StarbotCommand.js');
-const { capitaliseFirstLetter: cfl, fancyJoin, prettifyPermissions } = require('../../util/Util.js');
+const { formatPerms, upperFirstChar } = require('../../util/Util.js');
 
 module.exports = class Help extends StarbotCommand {
 	constructor(client) {
-		super(client, {
-			name: 'help',
-			description: 'view details for commands',
-			group: 'utility',
-			usage: '<command>',
-			args: [{
-				name: '<command>',
-				optional: true,
-				description: 'any command or alias name',
-				defaultValue: 'none',
-				example: 'help',
-			}],
-			aliases: [],
-			userPermissions: [],
-			clientPermissions: [],
-			guildOnly: false,
-			ownerOnly: false,
-			throttle: 5000,
-		});
+		super(
+			client,
+			{
+				__dirname,
+				name:        'help',
+				aliases:     [],
+				description: 'help for commands',
+				usage:       '<prefix><command> [COMMAND]',
+				args:        {
+					optional: [
+						{
+							name:        'COMMAND',
+							description: 'The name of a command',
+							example:     'ping',
+						},
+					],
+				},
+				guildOnly: true,
+				ownerOnly: false,
+				throttle:  {
+					duration:   5000,
+					persistent: false,
+				},
+			},
+		);
 	}
 
 	run(message) {
-		const { client, args, author, channel, guild } = message;
-		const { commands, aliases } = message.client;
-		const prefix = guild ? guild.model.prefix : client.prefix;
+		const { args, author, channel, client, guild } = message;
 
-		if (!args.length) {
-			const embed = client.embed(stripIndents`
-				For more detailed help, run \`${prefix}help <command>\`
-				To view help for arguments, run \`${prefix}help arguments\`
-			`, true)
+		// Properly deal with undefined/null
+		const commandName = String(args.processed._[0] || '');
+
+		if (!commandName) {
+			const embed = client
+				.embed({ author: true })
 				.setTitle('List of commands');
-			let sorted = Array.from(client.commandGroups.values()).sort();
 
-			if (!client.isOwner(author.id)) sorted = sorted.filter(group => group !== 'hidden');
+			for (const dir of client.commandGroups) {
+				const group = path.basename(dir);
+				if (!client.isOwner(author.id) && group === 'hidden') continue;
 
-			sorted.map(group => {
-				const cmds = commands.filter(cmd => cmd.group === group);
-
-				return embed.addField(cfl(group), cmds.map(cmd => `\`${cmd.name}\``).sort().join(' '), false);
-			});
-
-			return channel.send(embed);
-		}
-
-		if (/^arguments?$/i.test(args[0])) {
-			const embed = client.embed(stripIndents`
-					• If you want to include spaces in your arguments, wrap your argument in **single** or **double** quotes.
-					${oneLine`• If you want to repeat the same quote character **within** your argument, 
-						use \`<single_quote>\` and \`<double_quote>\` respectively.`}
-					${oneLine`• Alternatively, just use different quote characters inside of your argument.
-						For example \`"A single quote ' inside of double quotes"\``}
-				`, true)
-				.setTitle('Advanced arguments');
+				embed.addField(
+					upperFirstChar(group),
+					client.commands
+						.filter(cmd => cmd.group === group)
+						.map(cmd => `\`${cmd.name}\``)
+						.join(' ')
+					|| '\u200b',
+				);
+			}
 
 			return channel.send(embed);
 		}
 
-		let command = aliases.get(args[0].toLowerCase()) ||
-		commands.has(args[0].toLowerCase()) ? commands.get(args[0].toLowerCase()).name : undefined;
+		const command = client.commands.get(client.aliases.get(commandName) || commandName);
 
-		if (!command) {
-			return channel.send('No valid arguments were provided');
-		}
+		if (!command) return channel.embed(`No command with name \`${commandName}\` was found.`);
 
-		if (!(command instanceof StarbotCommand)) command = commands.get(command);
+		const embed = client.embed({ author: true })
+			.setTitle(`Details for '${command.name}' command`)
+			.setDescription(stripIndents`
+				• Description: ${command.description}
+				• Group: ${command.group}
+				• Usage: \`${guild.data.prefix}${command.name} ${command.usage}\`
+				• Aliases: ${command.aliases.map(a => `\`${a}\``).join(', ') || 'no aliases'}
+				• Special user permissions: ${formatPerms(command._permissions.user).join(', ') || 'none'}
+				• Special bot permissions: ${formatPerms(command._permissions.client).join(', ') || 'none'}
 
-		const help = [
-			`• Description: ${command.description.replace('<prefix>', prefix)}`,
-			`• Aliases: ${!command.aliases.length ? 'none' : command.aliases.join(', ')}`,
-			`• Usage: \`${prefix}${command.name}${command.usage ? ' ' : ''}${command.usage}\``,
-			`• Cooldown: ${moment(command.throttleDuration).from(0, true)}`,
-		];
-
-		if (command.userPermissions.length > 0) {
-			help.push(oneLine`
-				• Required user permissions: ${fancyJoin(prettifyPermissions(command.userPermissions))}
+				${command.guildOnly || command.ownerOnly ? '**Additional requirements**' : ''}${command.ownerOnly ? '\n• This command can only be used by the bot owner' : ''}${command.guildOnly ? '\n• This command can only be used in a server' : ''}
 			`);
+
+		const getEmptyEmbedCount = num => num < 3 ? 3 - num : num % 3;
+
+		const replaceHolders = str => str.replace(
+			/<id>/ig,
+			client.user.id,
+		);
+		// More placeholders may be added in the future
+
+		if (command.args.required.length) {
+			embed.addField(
+				`Required arguments (${command.args.required.length})`,
+				'\u200b',
+			);
+
+			for (const arg of command.args.required) {
+				embed.addField(
+					arg.name,
+					stripIndents`
+						${arg.description}
+						
+						Example: \`${replaceHolders(arg.example)}\`
+					`,
+					true,
+				);
+			}
+
+			for (let i = 0; i < getEmptyEmbedCount(command.args.required.length); i++) {
+				embed.addField(
+					'\u200b',
+					'\u200b',
+					true,
+				);
+			}
 		}
 
-		if (command.clientPermissions.length > 0) {
-			help.push(oneLine`
-				• Required bot permissions: ${fancyJoin(prettifyPermissions(command.clientPermissions))}
-			`);
-		}
+		if (command.args.optional.length) {
+			embed.addField(
+				`Options (${command.args.optional.length})`,
+				'\u200b',
+			);
 
-		if (command.guildOnly) help.push('• **This command can only be used in servers**');
-		if (command.ownerOnly) help.push('• **This command can only be run by bot owners**');
+			for (const arg of command.args.optional) {
+				embed.addField(
+					arg.name,
+					stripIndents`
+						${arg.description}
+						
+						Example: \`${replaceHolders(arg.example)}\`
+					`,
+					true,
+				);
+			}
 
-		const embed = client.embed(help.join('\n'), true)
-			.setTitle(`${cfl(command.group)} \\ ${command.name} command`);
-
-		for (const argument of command.args) {
-			embed.addField(argument.name, stripIndents`
-				• Optional: ${argument.optional ? 'yes' : 'no'}
-				• Description: ${argument.description.replace(/<prefix>/g, prefix)}${argument.defaultValue ? `\n${oneLine`
-					• Default value: ${argument.defaultValue}
-				`}` : ''}
-				• Example: ${argument.code === false ? argument.example : `\`${argument.example}\``}
-			`, true);
+			for (let i = 0; i < getEmptyEmbedCount(command.args.optional.length); i++) {
+				embed.addField(
+					'\u200b',
+					'\u200b',
+					true,
+				);
+			}
 		}
 
 		return channel.send(embed);

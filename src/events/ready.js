@@ -1,27 +1,40 @@
 'use strict';
 
+const { PRESENCE } = require('../util/Constants.js');
 const Logger = require('../util/Logger.js');
+const { pluralise: s } = require('../util/Util.js');
 
 module.exports = async client => {
 	Logger.info(`Logged in as ${client.user.tag} (${client.user.id})`);
 
-	await client.user.setPresence({
-		status: 'online',
-		afk: false,
-		activity: {
-			name: `@${client.user.username} help`,
-			type: 'PLAYING',
-		},
-	});
 	await client.users.fetch(client.user.id);
-	await client.db.models.User.q.add(client.user.id, () =>
-		client.db.models.User.findCreateFind({ where: { id: client.user.id } }),
-	);
 
-	// eslint-disable-next-line no-await-in-loop
-	for (const model in client.db.models) await client.db.models[model].findAll();
+	PRESENCE.activity.name = `@${client.user.username} ${PRESENCE.activity.name}`;
+	await client.user.setPresence(PRESENCE);
+
+	const { owner } = await client.fetchApplication();
+	client.ownerID = owner.id;
+
+	const guildRows = [];
+	const cachePromises = [];
+	let counter = 0;
+
+	client.guilds.cache.forEach(guild => {
+		guildRows.push(client.db.models.Guild.findCreateFind({ where: { id: guild.id } }));
+
+		cachePromises.push(guild.cacheClient());
+
+		counter++;
+	});
+
+	await Promise.all(guildRows);
+	await Promise.all(cachePromises);
+
+	for (const guild of guildRows) client.guilds.cache[guild.id] = guild;
+
+	Logger.info(`Cached ${counter} guild${s(counter)}`);
 
 	client._ready = true;
-	Logger.info('Cached models');
-	Logger.info(`Client ready at ${new Date()}`);
+	client._hrtime = process.hrtime(client._hrtime);
+	Logger.info(`Client ready in ${client._hrtime[0] > 0 ? `${client._hrtime[0]}s ` : ''}${client._hrtime[1] / 1000000}ms`);
 };

@@ -1,13 +1,15 @@
 'use strict';
 
-module.exports = async (client, data, guild, channel) => {
-	let msg;
-	try {
-		msg = await channel.messages.fetch(data.message_id);
-		// eslint-disable-next-line no-empty
-	} catch (err) {}
-	if (!msg) return;
+module.exports = async (client, data) => {
+	const guild = client.guilds.cache.get(data.guild_id);
+	const message = await guild
+		.channels.cache.get(data.channel_id)
+		.messages.fetch(data.message_id);
 
-	await msg.author.findCreateFind();
-	guild.starboard.addStar(msg, data.user_id);
+	if (message.author.id === data.user_id) return;
+
+	guild.starboard.addStar(
+		message,
+		data.user_id,
+	);
 };
