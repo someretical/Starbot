@@ -1,6 +1,7 @@
 {
 	"name": "starbot",
 	"version": "1.0.0",
+	"type": "module",
 	"description": "starbot",
 	"homepage": "https://someretical.github.io/Starbot",
 	"bugs": {
@@ -17,8 +18,8 @@
 		"test": "eslint ./",
 		"lint": "prettier --write . & eslint ./",
 		"build": "tsc",
-		"dev": "nodemon -r dotenv/config index.js",
-		"start": "node -r dotenv/config index.js"
+		"dev": "nodemon -r dotenv/config dist/index.js",
+		"start": "node -r dotenv/config dist/index.js"
 	},
 	"dependencies": {
 		"bufferutil": "^4.0.3",
@@ -36,6 +37,9 @@
 	},
 	"devDependencies": {
 		"@types/common-tags": "^1.8.0",
+		"@types/node-emoji": "^1.8.1",
+		"@types/sequelize": "^4.28.9",
+		"@types/yargs-parser": "^20.2.0",
 		"@typescript-eslint/eslint-plugin": "^4.21.0",
 		"@typescript-eslint/parser": "^4.21.0",
 		"eslint": "^7.24.0",
